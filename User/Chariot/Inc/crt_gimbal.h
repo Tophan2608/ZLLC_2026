@@ -24,7 +24,7 @@
 /* Exported macros -----------------------------------------------------------*/
 
 /* Exported types ------------------------------------------------------------*/
-#define LOCK_PITCH 0.00f
+#define LOCK_PITCH 0.047f
 extern float YAW_Reference_Angle;
 extern float YAW_Chassis_Angle;
  
@@ -222,11 +222,11 @@ protected:
     // 大pitch轴最小值
     float Min_Pitch_2_Angle = LOCK_PITCH;
     // 大pitch轴最大值
-    float Max_Pitch_2_Angle = LOCK_PITCH + 1.71f; //均待定
+    float Max_Pitch_2_Angle = LOCK_PITCH + 1.45f; //均待定
     // 电磁铁固定角度
     float Lock_Pitch_Angle = LOCK_PITCH;
     // 云台折叠角度
-    float Fold_Pitch_Angle = LOCK_PITCH + 1.71f;
+    float Fold_Pitch_Angle = LOCK_PITCH + 1.4f;
 
     //内部变量 
 

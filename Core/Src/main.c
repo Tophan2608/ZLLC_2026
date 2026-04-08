@@ -52,7 +52,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+void _atexit_init(){}
+void _atexit_mutex(){}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

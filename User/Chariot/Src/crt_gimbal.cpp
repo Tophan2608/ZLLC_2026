@@ -244,7 +244,7 @@ void Class_Gimbal::Init()
     Motor_Pitch.Init(&hfdcan2, DM_Motor_ID_0xA1, DM_Motor_Control_Method_MIT_OPENLOOP);
 
     Motor_Pitch_2.Init(&hfdcan1, DM_Motor_ID_0xA2, DM_Motor_Control_Method_POSITION_OMEGA, PI);
-    Motor_Pitch_2.Set_Target_Omega(1.2f);
+    Motor_Pitch_2.Set_Target_Omega(0.0f);
 }
 
 
@@ -292,7 +292,8 @@ void Class_Gimbal::Output()
             Math_Constrain(&Target_Pitch_2_Angle, Min_Pitch_2_Angle, Max_Pitch_2_Angle);
             //Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);
 
-            Motor_Pitch_2.Set_Target_Omega(1.2f);
+            Motor_Pitch_2.Set_Target_Omega(2.5f);
+            //Motor_Pitch_2.Set_Target_Omega(0.05f);
 
             // 设置目标角度
             // if(Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH - 0.3f)
@@ -315,7 +316,8 @@ void Class_Gimbal::Output()
             }
             Motor_Yaw.Set_Target_Angle(Target_Yaw_Angle);
             Motor_Pitch.Set_Target_Angle(Target_Pitch_Angle);
-            Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            //Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            Motor_Pitch_2.Set_Target_Angle(Lock_Pitch_Angle);
         }
         else if ((Get_Gimbal_Control_Type() == Gimbal_Control_Type_MINIPC) && (MiniPC->Get_MiniPC_Status() != MiniPC_Status_DISABLE))
         {
@@ -329,7 +331,9 @@ void Class_Gimbal::Output()
             }
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
-            Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);
+            Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);          
+            Motor_Pitch_2.Set_Target_Omega(2.5f);
+
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
             {
@@ -342,6 +346,8 @@ void Class_Gimbal::Output()
 
             Motor_Yaw.Set_Target_Angle(Target_Yaw_Angle);
             Motor_Pitch.Set_Target_Angle(Target_Pitch_Angle);
+            //Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            Motor_Pitch_2.Set_Target_Angle(Lock_Pitch_Angle);
         }
         else if ((Get_Gimbal_Control_Type() == Gimbal_Control_Type_MINIPC) && (MiniPC->Get_MiniPC_Status() == MiniPC_Status_DISABLE))
         {
@@ -352,6 +358,8 @@ void Class_Gimbal::Output()
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
             Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);
+            Motor_Pitch_2.Set_Target_Omega(2.5f);
+
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
             {
@@ -365,7 +373,8 @@ void Class_Gimbal::Output()
             // 设置目标角度
             Motor_Yaw.Set_Target_Angle(Target_Yaw_Angle);
             Motor_Pitch.Set_Target_Angle(Target_Pitch_Angle);
-
+            //Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            Motor_Pitch_2.Set_Target_Angle(Lock_Pitch_Angle);
         }
         else if (Get_Gimbal_Control_Type() == Gimbal_Control_type_FOLD)
         {
@@ -376,6 +385,7 @@ void Class_Gimbal::Output()
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
             Math_Constrain(&Target_Pitch_2_Angle, Min_Pitch_2_Angle, Max_Pitch_2_Angle);
+            Motor_Pitch_2.Set_Target_Omega(2.5f);
 
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
@@ -390,7 +400,8 @@ void Class_Gimbal::Output()
             // 设置目标角度
             Motor_Yaw.Set_Target_Angle(Target_Yaw_Angle);
             Motor_Pitch.Set_Target_Angle(Target_Pitch_Angle);
-            Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            //Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
+            Motor_Pitch_2.Set_Target_Angle(Fold_Pitch_Angle);
         }
     }
 }

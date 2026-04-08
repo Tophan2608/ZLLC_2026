@@ -217,11 +217,11 @@ void Class_Steering_Wheel_Chassis::Speed_Resolution()
             
             //斜坡处理
             dsb = R_DIST;
-            True_Vx[0] = True_Vx[3] = Slope_Velocity_X.Get_Out() - sinf((PI/2) - THETA) * Target_Omega *  R_DIST * 4.0f;
-            True_Vx[1] = True_Vx[2] = Slope_Velocity_X.Get_Out() + sinf((PI/2) - THETA) * Target_Omega *  R_DIST * 4.0f;
+            True_Vx[0] = True_Vx[3] = Slope_Velocity_X.Get_Out() - sinf((PI/2.f) - THETA) * Target_Omega *  R_DIST * 4.0f;
+            True_Vx[1] = True_Vx[2] = Slope_Velocity_X.Get_Out() + sinf((PI/2.f) - THETA) * Target_Omega *  R_DIST * 4.0f;
 
-            True_Vy[0] = True_Vy[1] = Slope_Velocity_Y.Get_Out() - cosf((PI/2) - THETA) * Target_Omega *  R_DIST * 4.0f;
-            True_Vy[2] = True_Vy[3] = Slope_Velocity_Y.Get_Out() + cosf((PI/2) - THETA) * Target_Omega *  R_DIST * 4.0f;
+            True_Vy[0] = True_Vy[1] = Slope_Velocity_Y.Get_Out() - cosf((PI/2.f) - THETA) * Target_Omega *  R_DIST * 4.0f;
+            True_Vy[2] = True_Vy[3] = Slope_Velocity_Y.Get_Out() + cosf((PI/2.f) - THETA) * Target_Omega *  R_DIST * 4.0f;
 
             //舵轮转动角度的优化处理
             for(int i = 0;i<4;i++){
@@ -261,9 +261,9 @@ void Class_Steering_Wheel_Chassis::Speed_Resolution()
                     True_Target_Angle_Radian[i] = Motor_Steer[i].Get_Now_Zero_Offset_Radian() + delta_Angle;
                 }
                 
-                //处理-180 - 180的突变问题    同时还有优劣弧处理
-                // delta_Angle = True_Target_Angle_Radian[i] - Motor_Steer[i].Get_Now_Zero_Offset_Radian();
-                // True_Target_Angle_Radian[i] = Motor_Steer[i].Get_Now_Zero_Offset_Radian() + Normalize_Angle_Radian_PI_to_PI(delta_Angle);
+                // 处理-180 - 180的突变问题    同时还有优劣弧处理
+                delta_Angle = True_Target_Angle_Radian[i] - Motor_Steer[i].Get_Now_Zero_Offset_Radian();
+                True_Target_Angle_Radian[i] = Motor_Steer[i].Get_Now_Zero_Offset_Radian() + Normalize_Angle_Radian_PI_to_PI(delta_Angle);
                 
                 Motor_Steer[i].Set_Target_Radian(True_Target_Angle_Radian[i]);
 								if(i==0||i==3)
