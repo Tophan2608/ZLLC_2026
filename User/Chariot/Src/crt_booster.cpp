@@ -428,7 +428,6 @@ void Class_Booster::Output()
 }
 #endif
 
-#define Heat_Detect_ENABLE
 uint8_t Swtich_To_Angle_Control_Flag = 0;
 void Class_Booster::Output()
 {
@@ -470,7 +469,6 @@ void Class_Booster::Output()
     case (Booster_Control_Type_CEASEFIRE):
     {
         // 停火
-
         if (Motor_Driver.Get_Control_Method() == DJI_Motor_Control_Method_ANGLE)
         {
             // Motor_Driver.Set_Target_Angle(Motor_Driver.Get_Now_Angle());
@@ -506,8 +504,8 @@ void Class_Booster::Output()
         #endif
         
         #ifdef Heat_Detect_DISABLE
-        Drvier_Angle += 2.0f * PI / 9.0f;
-        Motor_Driver.Set_Target_Radian(Drvier_Angle);
+        Driver_Angle += 2.0f * PI / 9.0f;
+        Motor_Driver.Set_Target_Radian(Driver_Angle);
         #endif
         // 点一发立刻停火
         Booster_Control_Type = Booster_Control_Type_CEASEFIRE;
@@ -520,6 +518,14 @@ void Class_Booster::Output()
         Motor_Driver.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Motor_Friction_Left.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Motor_Friction_Right.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+
+        //调整目标值与实际值相对应，以便从速度环平滑过渡到角度环
+        if (Swtich_To_Angle_Control_Flag == 1)
+        {
+            Driver_Angle = Motor_Driver.Get_Now_Radian();
+
+            Swtich_To_Angle_Control_Flag = 0;
+        }
 
         Driver_Angle += 2.5f * 2.0f * PI / 9.0f * 5.0f; // 五连发  一圈的角度/一圈弹丸数*发出去的弹丸数
         Motor_Driver.Set_Target_Radian(Driver_Angle);
@@ -562,7 +568,6 @@ void Class_Booster::Output()
                 Motor_Driver.Set_Target_Omega_Radian(tmp_omega);
             }
         }
-        Swtich_To_Angle_Control_Flag = 1;
 
         #endif
         #ifdef Heat_Detect_DISABLE
@@ -575,6 +580,7 @@ void Class_Booster::Output()
             Booster_Control_Type = Booster_Control_Type_CEASEFIRE;
         }
         #endif
+        Swtich_To_Angle_Control_Flag = 1;
         }
     break;
     }
@@ -582,7 +588,6 @@ void Class_Booster::Output()
     // 控制摩擦轮
     if (Friction_Control_Type != Friction_Control_Type_DISABLE)
     {
-
         Motor_Friction_Left.Set_Target_Omega_Radian(-Friction_Omega);
         Motor_Friction_Right.Set_Target_Omega_Radian(Friction_Omega);
     }

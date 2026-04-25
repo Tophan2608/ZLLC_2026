@@ -213,6 +213,8 @@ public:
         Class_LK_Motor Motor_Yaw;
         Class_PID PID_Chassis_Follow;
 
+        Class_IMU Boardc_BMI;
+
     #endif 
 
         //裁判系统
@@ -248,6 +250,7 @@ public:
         void CAN_Chassis_Tx_Gimbal_Callback();
         void CAN_Chassis_Rx_Gimbal_Callback_1();
         void CAN_Chassis_Tx_Gimbal_Callback_1();
+        void CAN_Chassis_Rx_Gimbal_Callback_2();
         void TIM1msMod50_Gimbal_Communicate_Alive_PeriodElapsedCallback();
         inline void Set_Gimbal_Status(Enum_Gimbal_Status __Gimbal_Status);
         inline Enum_Gimbal_Status Get_Gimbal_Status();
@@ -285,6 +288,7 @@ public:
         void CAN_Gimbal_Tx_Chassis_Callback();
         void CAN_Gimbal_Rx_Chassis_Callback_1();
         void CAN_Gimbal_Tx_Chassis_Callback_1();
+        void CAN_Gimbal_Tx_Chassis_Callback_2();
         
         void TIM_Control_Callback();
         void Contorl_Fold_Pitch();
@@ -334,9 +338,6 @@ protected:
 
     //底盘转换后的角度（数据来源yaw电机）
     float Chassis_Angle;
-    //底盘标定参考正方向角度(数据来源yaw电机)
-    float Reference_Angle = -34.387207;
-	float Reference_Radian = Reference_Angle * PI / 180.f;
 
     #ifdef CHASSIS
         //小陀螺云台坐标系稳定偏转角度 用于矫正

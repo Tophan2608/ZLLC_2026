@@ -68,6 +68,8 @@ Class_Chariot chariot;
  */
  uint16_t can[3];
 #ifdef CHASSIS
+float Dtcha;
+uint32_t last_cntcha = 0;
 void Chassis_Device_CAN1_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
 {
 	can[0]++;
@@ -75,6 +77,7 @@ void Chassis_Device_CAN1_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
     {
         case (0x201):
         {
+            Dtcha = DWT_GetDeltaT(&last_cntcha);
             chariot.Chassis.Motor_Wheel[0].CAN_RxCpltCallback(CAN_RxMessage->Data);
         }
         break;
@@ -140,6 +143,11 @@ void Chassis_Device_CAN2_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
         {
             chariot.CAN_Chassis_Rx_Gimbal_Callback_1();
         }
+        break;
+        case (0x79):
+        {
+            chariot.CAN_Chassis_Rx_Gimbal_Callback_2();
+        }
         break;						
         case (0x67)://超电接收
         {
@@ -155,7 +163,7 @@ void Chassis_Device_CAN2_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             }
             if(DtYAW < 20)
             {
-                buzzer_setTask(&buzzer, BUZZER_CALIBRATING_PRIORITY);
+                //buzzer_setTask(&buzzer, BUZZER_CALIBRATING_PRIORITY);
                 chariot.Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_DISABLE);
             }       
         }
@@ -400,7 +408,7 @@ void Task100us_TIM4_Callback()
 {
     #ifdef CHASSIS
     //__disable_irq();
-    GraphicSendtask();
+    //GraphicSendtask();
     //__enable_irq();
     static uint16_t Referee_Sand_Cnt = 0;
     if (Referee_Sand_Cnt % 50 == 1)
@@ -408,7 +416,7 @@ void Task100us_TIM4_Callback()
         //Task_Loop();
         Referee_Sand_Cnt = 0;
     }
-
+    chariot.Boardc_BMI.TIM_Calculate_PeriodElapsedCallback();
     #elif defined(GIMBAL)
     // 单给IMU消息开的定时器 ims
     Dtm = 1.0f/DWT_GetDeltaT(&last_cntm);
@@ -437,13 +445,14 @@ void Task100us_TIM4_Callback()
  */
 void Task1ms_TIM5_Callback()    
 {
+    DWT_GetDeltaT(&last_cntm);
     init_finished++;
     if(init_finished>2000)
     start_flag=1;
 
     /************ 判断设备在线状态判断 50ms (所有device:电机，遥控器，裁判系统等) ***************/
 
-    buzzer_taskScheduler(&buzzer);
+    //buzzer_taskScheduler(&buzzer);
     chariot.TIM1msMod50_Alive_PeriodElapsedCallback();
     //HAL_IWDG_Refresh(&hiwdg1);//252ms进行一次喂狗
 
@@ -471,12 +480,16 @@ void Task1ms_TIM5_Callback()
         //buzzer_taskScheduler(&buzzer);
     #endif
         //buzzer_setTask(&buzzer, BUZZER_DJI_STARTUP_PRIORITY);
-        chariot.TIM_Calculate_PeriodElapsedCallback();
-
+        static int mod2 = 0;
+        mod2++;
+        if(mod2 == 2)
+        {
+            chariot.TIM_Calculate_PeriodElapsedCallback();
+            mod2 = 0;
+        }
         /****************************** 驱动层回调函数 1ms *****************************************/
         // 统一打包发送
         TIM_CAN_PeriodElapsedCallback();
-
         //TIM_UART_PeriodElapsedCallback();
 
         // 给上位机发数据
@@ -510,6 +523,7 @@ void Task1ms_TIM5_Callback()
             mod5 = 0;
         }
     }
+    Dtm = DWT_GetDeltaT(&last_cntm);
 }
 
 /**
@@ -531,6 +545,9 @@ extern "C" void Task_Init()
 
         //裁判系统
         UART_Init(&huart10, Referee_UART10_Callback, 128);//并未使用环形队列 尽量给长范围增加检索时间 减少丢包
+
+        //c板陀螺仪spi外设
+        SPI_Init(&hspi2,Device_SPI2_Callback);
 	
         #ifdef POWER_LIMIT
 

@@ -37,6 +37,8 @@
 #include "config.h"
 #include "dvc_minipc.h"
 #include "drv_math.h"
+#include "kalman_filter.h"
+
 /* Exported macros -----------------------------------------------------------*/
 #define wheel_diameter 0.10f   // 驱动轮直径，m
 #define half_width 0.197f            // 车宽的一半，x方向为宽，m
@@ -53,11 +55,14 @@
 #define RPM_TO_VEL (PI * wheel_diameter / 60)  // 将转速(RPM)转换为轮子线速度(cm/s)  vel = rpm*pi*D/60  m/s
 #define VEL_TO_RPM (1 / RPM_TO_VEL)            // 将轮子线速度(m/s)转换为转速(RPM)
 #define M2006_REDUCTION_RATIO 36.000000f     // 定义M2006电机的减速比
-#define M3508_REDUCTION_RATIO 19.000000f     // 定义M3508电机的减速比
+#define M3508_REDUCTION_RATIO 15.76f     // 定义M3508电机的减速比
 #define MF7025_ENCODER_ANGLE 4096.0f         // 定义MF7025电机编码器每圈脉冲数
 
 #define RAD_TO_4096 (4096.0f / PI / 2.0f)      // 将弧度值转换为编码器计数值
+
 /* Exported types ------------------------------------------------------------*/
+extern float wwx,wwy;
+extern float H7_Offset_X, H7_Offset_Y;
 
 /**
  * @brief 底盘冲刺状态枚举
@@ -92,6 +97,8 @@ class Class_Steering_Wheel_Chassis
 {
 public:
 
+    Class_IMU *IMU;
+    Class_LK_Motor *Motor_Yaw;
     //斜坡函数加减速速度X
     Class_Slope Slope_Velocity_X;
     //斜坡函数加减速速度Y
@@ -172,8 +179,10 @@ protected:
 
     //舵向电机目标值
     float Target_Steer_Angle[4];
-    //转动电机目标值
+    //驱动电机目标值
     float Target_Wheel_Omega[4];
+    //驱动电机扭矩
+    float Target_Wheel_Torque[4];
 
     //读变量
 
@@ -209,6 +218,32 @@ protected:
 
     //内部函数
     void Speed_Resolution();
+
+    void Set_Chassis_Kalman_Measure(float value1, float value2, float value3, float value4, float value5, float value6);
+    void Chassis_Speed_Estimate();
+    void Stree_Angle_Resolution();
+    void Force_Speed_Resolution();
+
+    Class_PID PID_Omega;
+    Class_PID PID_Velocity_X;
+    Class_PID PID_Velocity_Y;
+
+        // 轮向电机动摩擦阻力电流值(起转阻力)
+    float Dynamic_Resistance_Wheel_Current[4] = {0.0f,
+                                                 0.0f,
+                                                 0.0f,
+                                                 0.0f};
+    // 轮向电机摩擦阻力连续化的角速度阈值
+    float Wheel_Resistance_Omega_Threshold = 1.0f;
+    // 防单轮超速系数
+    float Wheel_Speed_Limit_Factor = 0.0f;
+
+    const float Wheel_Azimuth[4] = {PI / 2.0f + THETA,
+                                    3.0f * PI / 2.0f - THETA,
+                                    3.0f * PI / 2.0f + THETA,
+                                    PI / 2.0f - THETA};
+
+    KalmanFilter_t Chassis_Speed_Kalman;
 };
 
 /**

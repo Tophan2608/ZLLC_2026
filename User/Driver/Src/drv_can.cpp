@@ -53,6 +53,7 @@ uint8_t CAN2_Gimbal_Tx_Chassis_Data[8];   // 云台给底盘发送缓冲区
 uint8_t CAN2_Chassis_Tx_Gimbal_Data[8];   // 底盘给云台发送缓冲区
 uint8_t CAN2_Gimbal_Tx_Chassis_Data_1[8]; // 云台给底盘发送缓冲区
 uint8_t CAN2_Chassis_Tx_Gimbal_Data_1[8]; // 底盘给云台发送缓冲区
+uint8_t CAN2_Gimbal_Tx_Chassis_Data_2[8]; // 云台给底盘发送缓冲区
 
 uint8_t CAN3_0x1ff_Tx_Data[8];
 uint8_t CAN3_0x1fe_Tx_Data[8];
@@ -378,6 +379,7 @@ void TIM_CAN_PeriodElapsedCallback()
         mod5 = 0;
         CAN_Send_Data(&hfdcan2, 0x77, CAN2_Gimbal_Tx_Chassis_Data, 8); //给底盘发送控制命令 按照0x77 ID 发送
         CAN_Send_Data(&hfdcan2, 0x78, CAN2_Gimbal_Tx_Chassis_Data_1, 8);
+        CAN_Send_Data(&hfdcan2, 0x79, CAN2_Gimbal_Tx_Chassis_Data_2, 8);
         
         // CAN_Send_Data(&hfdcan1, 0xf1, CAN1_0xxf1_Tx_Data, 8);
         CAN_Send_Data(&hfdcan1, 0x200, CAN1_0x200_Tx_Data, 8);

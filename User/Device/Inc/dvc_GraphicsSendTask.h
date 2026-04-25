@@ -5,7 +5,7 @@
 #include "crt_chassis.h"
 #include "dvc_referee.h"
 
-#define PI 3.14159265358979323846f
+#define PI 3.14159f
 #define DMA_FLAG_TCIF4 ((uint32_t)0x20000020)
 /*��Ļ����*/
 #define SCREEN_WIDTH 1080
