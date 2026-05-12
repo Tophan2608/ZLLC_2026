@@ -44,7 +44,6 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 #include "config.h"
-#include "iwdg.h"
 #include "dvc_GraphicsSendTask.h"
 #include "buzzer.h"
 /* Private macros ------------------------------------------------------------*/
@@ -635,7 +634,7 @@ extern "C" void Task_Init()
         
 
         if (chariot.Referee_UI_Refresh_Status == Referee_UI_Refresh_Status_ENABLE)
-            Init_Cnt = 10;
+            Init_Cnt = 2000;
 
     }
 

@@ -55,6 +55,63 @@ short lastBigFrictSpeed;
 uint8_t Transmit_Pack[128];				   // 裁判系统发送帧
 uint8_t data_pack[DRAWING_PACK * 7] = {0}; // 数据段部分
 uint8_t DMAsendflag;
+
+#define REFEREE_DMA_TX_QUEUE_DEPTH 4
+#define REFEREE_DMA_MAX_PACKET_LEN SEND_MAX_SIZE
+
+static RefereeDMAPacket_t referee_dma_queue[REFEREE_DMA_TX_QUEUE_DEPTH];
+static uint8_t referee_dma_head = 0;
+static uint8_t referee_dma_tail = 0;
+static uint8_t referee_dma_count = 0;
+static volatile uint8_t referee_dma_busy = 0;
+
+static inline uint8_t Referee_DMA_QueueFull(void)
+{
+    return referee_dma_count >= REFEREE_DMA_TX_QUEUE_DEPTH;
+}
+
+static inline uint8_t Referee_DMA_QueueEmpty(void)
+{
+    return referee_dma_count == 0;
+}
+
+static void Referee_DMA_Dequeue(void)
+{
+    if (Referee_DMA_QueueEmpty()) {
+        return;
+    }
+    referee_dma_head = (referee_dma_head + 1) % REFEREE_DMA_TX_QUEUE_DEPTH;
+    referee_dma_count--;
+}
+
+static void Referee_DMA_StartNext(void)
+{
+    if (referee_dma_busy || Referee_DMA_QueueEmpty()) {
+        return;
+    }
+
+    uint16_t len = referee_dma_queue[referee_dma_head].len;
+    if (HAL_UART_Transmit_DMA(&huart10, referee_dma_queue[referee_dma_head].data, len) == HAL_OK) {
+        referee_dma_busy = 1;
+    }
+}
+
+void Referee_DMA_EnqueuePacket(const uint8_t *data, uint16_t len)
+{
+    if (len == 0 || len > REFEREE_DMA_MAX_PACKET_LEN) {
+        return;
+    }
+
+    if (Referee_DMA_QueueFull()) {
+        return;
+    }
+
+    memcpy(referee_dma_queue[referee_dma_tail].data, data, len);
+    referee_dma_queue[referee_dma_tail].len = len;
+    referee_dma_tail = (referee_dma_tail + 1) % REFEREE_DMA_TX_QUEUE_DEPTH;
+    referee_dma_count++;
+    Referee_DMA_StartNext();
+}
 /**********************************************************************************************************
  *函 数 名: Send_UIPack
  *功能说明: 发送自定义UI数据包（数据段头部和数据）
@@ -108,18 +165,26 @@ void Send_toReferee(uint16_t cmd_id, uint16_t data_len)
 	while (send_cnt)
 	{
 		send_cnt--;
-		// 将超时时间从5ms增加到50ms，提高通信稳定性
-		HAL_UART_Transmit(&huart10, (uint8_t *)Transmit_Pack, Frame_Length, 50);
-		DMAsendflag = 1;
-
-		// 添加短暂延时，避免连续发送导致丢包
-		if (send_cnt > 0)
-		{
-			for (volatile uint16_t i = 0; i < 1000; i++)
-				; // 简单延时
-		}
+		Referee_DMA_EnqueuePacket(Transmit_Pack, Frame_Length);
 	}
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == &huart10) {
+        referee_dma_busy = 0;
+        Referee_DMA_Dequeue();
+        Referee_DMA_StartNext();
+    }
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 /**********************************************************************************************************
  *函 数 名: Deleta_Layer
@@ -949,7 +1014,7 @@ void GraphicSendtask(void)
 			break;
 		case 2: // 云台控制类型
 			GIMLine_Change(0);
-			Last_JudgeReceiveData.Chassis_Control_Type = JudgeReceiveData.Chassis_Control_Type;
+			Last_JudgeReceiveData.Gimbal_Control_Type = JudgeReceiveData.Gimbal_Control_Type;
 			break;
 		}
 
@@ -957,7 +1022,7 @@ void GraphicSendtask(void)
 		status_update_retry++;
 
 		// 如果重试次数达到上限或者已经成功发送，则回到空闲状态
-		if (status_update_retry >= 5)
+		if (status_update_retry >= 10)
 		{
 			ui_state = UI_STATE_IDLE;
 			last_update_time = current_time;
@@ -970,34 +1035,23 @@ void GraphicSendtask(void)
 		break;
 
 	case UI_STATE_VALUE_UPDATE:
-		// 只更新一个数值，避免占用太多通信资源
-		static uint8_t value_update_index = 0;
-
-		switch (value_update_index)
+		// 更新所有数值，提高发送频率
+		// 更新Pitch角度
+		if (fabs(Last_JudgeReceiveData.Pitch_Angle - JudgeReceiveData.Pitch_Angle) > 0.01f)
 		{
-		case 0: // 更新Pitch角度
-			if (fabs(Last_JudgeReceiveData.Pitch_Angle - JudgeReceiveData.Pitch_Angle) > 0.01f)
-			{
-				PitchUI_Change(JudgeReceiveData.Pitch_Angle, 0);
-				Last_JudgeReceiveData.Pitch_Angle = JudgeReceiveData.Pitch_Angle;
-			}
-			break;
-
-		case 1: // 更新超级电容电压
-			if (fabs(Last_JudgeReceiveData.Supercap_Voltage - JudgeReceiveData.Supercap_Voltage) >= 0.01f)
-			{
-				SCapLine_Change();
-				Last_JudgeReceiveData.Supercap_Voltage = JudgeReceiveData.Supercap_Voltage;
-			}
-			break;
-
-		case 2: // 底盘角度及控制类型
-			ChassisLine_Change(JudgeReceiveData.Chassis_Gimbal_Diff, 0);
-			break;
+			PitchUI_Change(JudgeReceiveData.Pitch_Angle, 0);
+			Last_JudgeReceiveData.Pitch_Angle = JudgeReceiveData.Pitch_Angle;
 		}
 
-		// 更新索引，循环遍历所有数值
-		value_update_index = (value_update_index + 1) % 3;
+		// 更新超级电容电压
+		if (fabs(Last_JudgeReceiveData.Supercap_Voltage - JudgeReceiveData.Supercap_Voltage) >= 0.01f)
+		{
+			SCapLine_Change();
+			Last_JudgeReceiveData.Supercap_Voltage = JudgeReceiveData.Supercap_Voltage;
+		}
+
+		// 底盘角度及控制类型
+		ChassisLine_Change(JudgeReceiveData.Chassis_Gimbal_Diff, 0);
 
 		// 回到空闲状态
 		ui_state = UI_STATE_IDLE;

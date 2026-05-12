@@ -18,6 +18,14 @@
 #define CRC_LEN 2		  // β��CRC16У��
 #define DRAWING_PACK 15	  // ��1��ͼ���ݰ�����
 
+#define REFEREE_DMA_TX_QUEUE_DEPTH 4
+#define REFEREE_DMA_MAX_PACKET_LEN SEND_MAX_SIZE
+
+typedef struct {
+    uint8_t data[REFEREE_DMA_MAX_PACKET_LEN];
+    uint16_t len;
+} RefereeDMAPacket_t;
+
 /* ����ϵͳ���ݶ�����ID */
 #define Drawing_Delete_ID 0x0100
 #define Drawing_Graphic1_ID 0x0101
@@ -210,6 +218,7 @@ void GraphicSendtask(void);
 
 void Send_UIPack(uint16_t data_cmd_id, uint16_t SendID, uint16_t receiverID, uint8_t *data, uint16_t pack_len);
 void Send_toReferee(uint16_t cmd_id, uint16_t data_len);
+void Referee_DMA_EnqueuePacket(const uint8_t *data, uint16_t len);
 
 graphic_data_struct_t *Line_Draw(uint8_t layer, int Op_Type, uint16_t startx, uint16_t starty, uint16_t endx, uint16_t endy, uint16_t line_width, int color, uint8_t name[]);
 graphic_data_struct_t *Rectangle_Draw(uint8_t layer, int Op_Type, uint16_t startx, uint16_t starty, uint16_t endx, uint16_t endy, uint16_t line_width, int color, uint8_t name[]);
