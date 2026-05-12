@@ -184,26 +184,18 @@ typedef struct
 {
 	uint8_t robot_id;
 	uint8_t Chassis_Control_Type;
-	uint8_t Bullet_Status;
-	uint8_t Minipc_Status;
-	uint8_t MiniPC_Aim_Status;
-	uint8_t Fric_Status;
-	uint8_t Supercap_Energy;
-	uint8_t Supercap_State;
-	uint8_t Radar_Double_Damage_Flag;
+	uint8_t Minipc_Status; //自瞄当前运行状态
+	uint8_t MiniPC_Aim_Status; //上位机存活状态
+	uint8_t Fric_Status;  //摩擦轮状态
+	uint8_t Supercap_Energy;  // 超级电容能量百分比
+	uint8_t Supercap_State; // 超级电容状态
 	uint8_t Minipc_Mode;
-	uint8_t Antispin_Type;
 	uint8_t Gimbal_Control_Type; // 添加云台控制状态字段
 	uint8_t Booster_User_Control_Type;
-	uint8_t minipc_alive;
 	uint16_t booster_fric_omega_left;
-	uint16_t booster_fric_omega_right;
-	uint16_t Booster_bullet_num;
-	uint16_t Booster_17mm_Heat;
-	uint16_t Booster_17mm_Heat_Max;
 	float Supercap_Voltage;
 	float Pitch_Angle;
-	 float Chassis_Gimbal_Diff;
+	float Chassis_Gimbal_Diff;
 
 } JudgeReceive_t;
 
@@ -232,11 +224,16 @@ void ShootLines_Init_3(void);
 void ShootLines_Init_4(void);
 void Pitch_Line_Init_1(void);
 void Pitch_Line_Init_2(void);
+void Pitch_Line_Init_3(void);
+void GIMLine_Init(void);
+void SCapLine_Init(void);
 void Lanelines_Init(void);
-void Char_Init(void);
-void CarPosture_Change(short Yaw_100, uint8_t Init_Cnt);
+void SCapLine_Change(void);
+void ChassisLine_Change(float theta, uint8_t Init_Cnt);
+void BoostLine_Change(void);
+void GIMLine_Change(uint8_t Init_Cnt);
 void PitchUI_Change(float Pitch, uint8_t Init_Cnt);
-void CharChange(uint8_t Init_Flag);
+//void CharChange(uint8_t Init_Flag);
 
 void Char_Draw(uint8_t layer, int Op_Type, uint16_t startx, uint16_t starty, uint8_t size, uint8_t len, uint16_t line_width, int color, uint8_t name[], uint8_t *str_data);
 

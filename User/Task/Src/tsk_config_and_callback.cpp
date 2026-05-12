@@ -514,12 +514,12 @@ void Task1ms_TIM5_Callback()
             chariot.CAN_Chassis_Tx_Gimbal_Callback();
             chariot.CAN_Chassis_Tx_Gimbal_Callback_1();
             //更新UI时间
-            UI_Refresh ++;
-            if (UI_Refresh == 300)
-            {
-                Init_Cnt = 10;
-                UI_Refresh = 0;
-            }
+//            UI_Refresh ++;
+//            if (UI_Refresh == 300)
+//            {
+//                Init_Cnt = 10;
+//                UI_Refresh = 0;
+//            }
             // if(hfdcan3.ErrorCode)
             // {
             //     buzzer_setTask(&buzzer, BUZZER_CALIBRATING_PRIORITY);
@@ -627,27 +627,15 @@ extern "C" void Task_Init()
         static uint32_t time_s;
         freq = 1 / DWT_GetDeltaT(&time_s);
 
-        // JudgeReceiveData.robot_id = chariot.Referee.Get_ID();
-        JudgeReceiveData.robot_id = (uint8_t)1U;
+        JudgeReceiveData.robot_id = chariot.Referee.Get_ID();
+        JudgeReceiveData.Chassis_Control_Type = chariot.Chassis.Get_Chassis_Control_Type();
         JudgeReceiveData.Pitch_Angle = chariot.Gimbal_Tx_Pitch_Angle; // pitch角度
-        JudgeReceiveData.Bullet_Status = chariot.Bulletcap_Status;    // 弹舱
-        JudgeReceiveData.Fric_Status = chariot.Fric_Status;           // 摩擦轮
-        JudgeReceiveData.Minipc_Status = chariot.MiniPC_Status;       // 自瞄是否离线
-        JudgeReceiveData.Booster_User_Control_Type = chariot.Booster_User_Control_Type;
-        // JudgeReceiveData.Supercap_Energy = chariot.Chassis.Supercap.Get_Stored_Energy();    // 超级电容储能
-        JudgeReceiveData.Supercap_Voltage = chariot.Chassis.Supercap.Get_Now_Voltage() / 100.0f; // 超级电容容量
-        JudgeReceiveData.Chassis_Control_Type = chariot.Chassis.Get_Chassis_Control_Type();      // 底盘控制模式
-        JudgeReceiveData.Supercap_State = chariot.Sprint_Status;
-        JudgeReceiveData.booster_fric_omega_left = chariot.Booster_fric_omega_left; // 左摩擦轮速度; // 左摩擦轮速度
-        JudgeReceiveData.booster_fric_omega_right = chariot.Booster_fric_omega_right;
-        JudgeReceiveData.Booster_17mm_Heat = chariot.Referee.Get_Booster_17mm_1_Heat();
-        JudgeReceiveData.Booster_17mm_Heat_Max = chariot.Referee.Get_Booster_17mm_1_Heat_Max();
-        JudgeReceiveData.Minipc_Mode = chariot.MiniPC_Type;
-		JudgeReceiveData.Antispin_Type=chariot.Antispin_Type;
-        JudgeReceiveData.minipc_alive = chariot.minipc_alive;
-        //JudgeReceiveData.Energy_Left_Rate = chariot.Referee.Get_Energy_Left_Rate();
-        // if (chariot.Referee_UI_Refresh_Status == Referee_UI_Refresh_Status_ENABLE)
-        //     Init_Cnt = 10;
+        //JudgeReceiveData.Supercap_Voltage = chariot.Chassis.Supercap.Get_Voltage(); // 超电压
+        JudgeReceiveData.Chassis_Gimbal_Diff = chariot.Motor_Yaw.Get_Now_Angle(); // 底盘角度
+        
+
+        if (chariot.Referee_UI_Refresh_Status == Referee_UI_Refresh_Status_ENABLE)
+            Init_Cnt = 10;
 
     }
 

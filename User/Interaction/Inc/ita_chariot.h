@@ -320,9 +320,6 @@ public:
     //底盘云台通讯数据
     float Gimbal_Tx_Pitch_Angle = 0;
 
-    //临时加的上位机存活变量
-    uint8_t minipc_alive = 0;
-
 protected:
 
     //遥控器拨动的死区, 0~1
@@ -351,9 +348,6 @@ protected:
         //底盘 云台 发射机构 前一帧控制类型
         Enum_Chassis_Control_Type Pre_Chassis_Control_Type = Chassis_Control_Type_DISABLE;
         Enum_Gimbal_Control_Type Pre_Gimbal_Control_Type = Gimbal_Control_Type_NORMAL;
-        
-        //云台还没出，先放在底盘里的东西
-        void Control_Chassis_Test();
     #endif
 
     #ifdef GIMBAL

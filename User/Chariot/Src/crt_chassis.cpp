@@ -203,7 +203,6 @@ void Class_Steering_Wheel_Chassis::Speed_Resolution()
     // 舵轮运动学逆解
     case (Chassis_Control_Type_FLLOW):
     case (Chassis_Control_Type_SPIN_Positive):
-    case (Chassis_Control_Type_SPIN_NePositive):
     case (Chassis_Control_Type_Drive):
     {
         // 轮组自锁，每个小轮坐标系都符合右手系

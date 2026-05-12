@@ -160,7 +160,7 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback(uint8_t *Rx_Data)
     gimbal_velocity_y = Math_Int_To_Float(tmp_velocity_y, -450 , 450, -1 * Chassis.Get_Velocity_Y_Max(), Chassis.Get_Velocity_Y_Max());
     chassis_omega = Math_Int_To_Float(tmp_omega, -200, 200, -4.0f, 4.0f);      // Chassis_Radius;//映射范围除以五十 云台发的是车体角速度 转为舵轮电机的线速度
 
-    Gimbal_Tx_Pitch_Angle = Math_Int_To_Float(tmp_gimbal_pitch, 0, 0x7FFF, -20.0f, 25.0f);
+    Gimbal_Tx_Pitch_Angle = Math_Int_To_Float(tmp_gimbal_pitch, 0, 0x7FFF, -40.0f, 40.0f);
 
     // 获取云台坐标系和底盘坐标系的夹角（弧度制）
     // 角速度前馈，保证小陀螺时走直线
@@ -168,10 +168,6 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback(uint8_t *Rx_Data)
     if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_SPIN_Positive)
     {
         Feedback_Angle = -0.057f * Chassis.Get_Spin_Omega();
-    }
-    else if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_SPIN_NePositive)
-    {
-        Feedback_Angle = 0.057f * Chassis.Get_Spin_Omega();
     }
     else
     {
@@ -208,28 +204,20 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback_1()
     Enum_Chassis_Control_Type chassis_control_type;
     //云台控制类型
     Enum_Gimbal_Control_Type gimbal_control_type;
-    uint16_t before_game_bullet_num = 0;
-    MiniPC_Type = Enum_MiniPC_Type(CAN_Manage_Object->Rx_Buffer.Data[0]);
-    //Antispin_Type = Enum_Antispin_Type(CAN_Manage_Object->Rx_Buffer.Data[1]);
-    memcpy(&minipc_alive, &CAN_Manage_Object->Rx_Buffer.Data[1], sizeof(uint8_t));
-    memcpy(&Booster_Heat, &CAN_Manage_Object->Rx_Buffer.Data[2], sizeof(uint16_t));
-    memcpy(&Booster_fric_omega_right, &CAN_Manage_Object->Rx_Buffer.Data[4], sizeof(uint16_t));
-    //memcpy(&Booster_bullet_num, &CAN_Manage_Object->Rx_Buffer.Data[6], sizeof(uint16_t));
-    memcpy(&control_type, &CAN_Manage_Object->Rx_Buffer.Data[7], sizeof(uint8_t));
-    if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_NOT_STARTED)
-    {
-        Booster_bullet_num_before = before_game_bullet_num;
-    }
+
+    memcpy(&control_type, &CAN_Manage_Object->Rx_Buffer.Data[0], sizeof(uint8_t));
+
     chassis_control_type = (Enum_Chassis_Control_Type)(control_type & 0x03);
     Sprint_Status = (Enum_Sprint_Status)(control_type >> 2 & 0x01);
-    // 将原来的Fric_Status解析改为云台控制类型解析
     gimbal_control_type = (Enum_Gimbal_Control_Type)((control_type >> 3) & 0x03);
-    // 更新JudgeReceiveData中的云台控制类型
-    JudgeReceiveData.Gimbal_Control_Type = gimbal_control_type;
-    Booster_User_Control_Type = (Enum_Booster_User_Control_Type)(control_type >> 5 & 0x01);
+    Fric_Status = (Enum_Fric_Status)(control_type >> 5 & 0x01);
     MiniPC_Status = (Enum_MiniPC_Status)(control_type >> 6 & 0x01);
     Referee_UI_Refresh_Status = (Enum_Referee_UI_Refresh_Status)(control_type >> 7 & 0x01);
 				
+    // 更新JudgeReceiveData中的控制类型
+    JudgeReceiveData.Gimbal_Control_Type = gimbal_control_type;
+    JudgeReceiveData.Fric_Status = Fric_Status;
+    JudgeReceiveData.Chassis_Control_Type = chassis_control_type;
     //设定底盘控制类型
     Chassis.Set_Chassis_Control_Type(chassis_control_type);            
     //Chassis.Set_Supercap_Mode(supercap_mode);
@@ -323,31 +311,17 @@ void Class_Chariot::CAN_Gimbal_Tx_Chassis_Callback()
 }
 void Class_Chariot::CAN_Gimbal_Tx_Chassis_Callback_1()
 {
-    uint16_t tmp_fric_omega_left = 0;
-    uint16_t tmp_fric_omega_right = 0;
-    uint16_t tmp_actual_bullet_num = 0;
-    uint16_t Heat = 0;
     //控制类型字节
     uint8_t control_type;
     MiniPC_Status = MiniPC.Get_MiniPC_Status();
     //底盘控制类型
-    Enum_Chassis_Control_Type chassis_control_type;
-    //超电控制类型
-    uint8_t Supercap_Mode;
-    tmp_fric_omega_left = (uint16_t)abs(Booster.Motor_Friction_Left.Get_Now_Omega_Radian());
-    tmp_fric_omega_right = (uint16_t)abs(Booster.Motor_Friction_Right.Get_Now_Omega_Radian());
-    tmp_actual_bullet_num = Booster.actual_bullet_num;
-    //CAN2_Gimbal_Tx_Chassis_Data_1[0] = MiniPC.Get_MiniPC_Type();
-    Heat = Booster.FSM_Heat_Detect.Heat;
+    Enum_Chassis_Control_Type chassis_control_type = Chassis.Get_Chassis_Control_Type();
+    //云台控制类型
     Enum_Gimbal_Control_Type gimbal_control_type = Gimbal.Get_Gimbal_Control_Type();
-    chassis_control_type = Chassis.Get_Chassis_Control_Type();
-    uint8_t booster_user_control = Booster.Booster_User_Control_Type;
-    control_type = (uint8_t)(Referee_UI_Refresh_Status << 7 | MiniPC_Status << 6 | booster_user_control << 5 | gimbal_control_type << 3 | Sprint_Status << 2 | chassis_control_type);
-    memcpy(CAN2_Gimbal_Tx_Chassis_Data_1 + 1, &minipc_alive, sizeof(uint8_t));
-    memcpy(CAN2_Gimbal_Tx_Chassis_Data_1 + 2, &Heat, sizeof(uint16_t));
-    memcpy(CAN2_Gimbal_Tx_Chassis_Data_1 + 4, &tmp_fric_omega_right, sizeof(uint16_t));
-    //memcpy(CAN2_Gimbal_Tx_Chassis_Data_1 + 6, &tmp_actual_bullet_num, sizeof(uint16_t));
-    memcpy(CAN2_Gimbal_Tx_Chassis_Data_1 + 7, &control_type ,sizeof(uint8_t));
+    //发射机构控制状态
+    uint8_t booster_fire_type = Booster.Get_Friction_Control_Type();
+    control_type = (uint8_t)(Referee_UI_Refresh_Status << 7 | MiniPC_Status << 6 | booster_fire_type << 5 | gimbal_control_type << 3 | Sprint_Status << 2 | chassis_control_type);
+    memcpy(CAN2_Gimbal_Tx_Chassis_Data_1, &control_type ,sizeof(uint8_t));
 }
 float H7_X = 0.072f;
 float H7_Y = 0.158f;
@@ -1147,8 +1121,6 @@ float reference_angle = Reference_Angle;
 void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
 {
 #ifdef CHASSIS
-    // 底盘给云台发消息
-    CAN_Chassis_Tx_Gimbal_Callback();
 
 	if (Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_FLLOW)
 	{
@@ -1216,12 +1188,6 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
         // Chassis.Set_Target_Omega(Control_Omega);
         Chassis.Set_Target_Omega(Chassis.Get_Spin_Omega());
 	}
-		
-	else if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_SPIN_NePositive)
-	{
-		Chassis.Set_Target_Omega(-Chassis.Get_Spin_Omega());
-	}
-
     else if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_Drive)
     {
         //在遥控器控制策略中实现
@@ -1257,8 +1223,6 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
     Booster.TIM_Calculate_PeriodElapsedCallback();
     //传输数据给上位机
     MiniPC.TIM_Write_PeriodElapsedCallback();
-    //给下板发送数据
-    CAN_Gimbal_Tx_Chassis_Callback();
 #endif				
 }
 

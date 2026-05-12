@@ -120,6 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
+          <Name>潋?</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -343,6 +344,31 @@
           <count>38</count>
           <WinNumber>1</WinNumber>
           <ItemText>Init_Cnt</ItemText>
+        </Ww>
+        <Ww>
+          <count>39</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>JudgeReceiveData</ItemText>
+        </Ww>
+        <Ww>
+          <count>40</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>ui_state</ItemText>
+        </Ww>
+        <Ww>
+          <count>41</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>ssm,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>42</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>xxx,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>43</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>yyy,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>

@@ -83,7 +83,7 @@ enum Enum_Chassis_Control_Type :uint8_t
     Chassis_Control_Type_FLLOW,
     Chassis_Control_Type_SPIN_Positive,
     Chassis_Control_Type_Drive,  //底盘直驱
-    Chassis_Control_Type_SPIN_NePositive  // 反小陀螺
+    //Chassis_Control_Type_SPIN_NePositive  // 反小陀螺
 };
 
 /**
