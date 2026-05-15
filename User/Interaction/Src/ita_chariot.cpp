@@ -194,7 +194,7 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback(uint8_t *Rx_Data)
     Chassis.Set_Target_Velocity_Y(-gimbal_velocity_x);
     if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_Drive)
     {
-        Chassis.Set_Target_Omega(-chassis_omega);
+        Chassis.Set_Target_Drive_Omega(-chassis_omega);
     }
 
 }
@@ -219,7 +219,8 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback_1()
     JudgeReceiveData.Fric_Status = Fric_Status;
     JudgeReceiveData.Chassis_Control_Type = chassis_control_type;
     //设定底盘控制类型
-    Chassis.Set_Chassis_Control_Type(chassis_control_type);            
+    Chassis.Set_Chassis_Control_Type(chassis_control_type);  
+
     //Chassis.Set_Supercap_Mode(supercap_mode);
     //Chassis.Set_Supercap_Mode(Supercap_ENABLE);
 }
@@ -378,7 +379,7 @@ void Class_Chariot::Control_Chassis()
             else
             {
                 //有大PITCH的情况下用
-                if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.35f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
+                if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.13f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
                 {
                     Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
                     Chassis.Set_Target_Omega(0.0f);
@@ -509,31 +510,31 @@ void Class_Chariot::Control_Chassis()
                 Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
             }
                         // 双击Z键切换底盘控制模式
-            if (VT13.Get_Keyboard_Key_Z() == VT13_Key_Status_TRIG_FREE_PRESSED)
-            {
-                float tmp_time = DWT_GetTimeline_ms();
-                if (tmp_time - z_key_last_time < 500) // 双击检测
-                {
-                    z_key_flag = true;
-                }
-                else
-                {
-                    z_key_flag = false;
-                }
-                if(z_key_flag)
-                {
-                    if (Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_Drive)
-                    {
-                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
-                    }
-                    else if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_FLLOW)
-                    {
-                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
-                    }
-                }
-                z_key_last_time = tmp_time;
+            // if (VT13.Get_Keyboard_Key_Z() == VT13_Key_Status_TRIG_FREE_PRESSED)
+            // {
+            //     float tmp_time = DWT_GetTimeline_ms();
+            //     if (tmp_time - z_key_last_time < 500) // 双击检测
+            //     {
+            //         z_key_flag = true;
+            //     }
+            //     else
+            //     {
+            //         z_key_flag = false;
+            //     }
+            //     if(z_key_flag)
+            //     {
+            //         if (Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_Drive)
+            //         {
+            //             Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
+            //         }
+            //         else if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_FLLOW)
+            //         {
+            //             Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
+            //         }
+            //     }
+            //     z_key_last_time = tmp_time;
 
-            }
+            // }
             if (VT13.Get_Keyboard_Key_A() == VT13_Key_Status_PRESSED) // x轴
             {
                 chassis_velocity_x = -Chassis.Get_Velocity_X_Max() / DR16_Mouse_Chassis_Shift;
@@ -558,8 +559,10 @@ void Class_Chariot::Control_Chassis()
                     Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_SPIN_Positive);
                     chassis_omega = Chassis.Get_Spin_Omega();
                 }
-                else
+                else if (Chassis.Get_Chassis_Control_Type() != Chassis_Control_Type_Drive)
+                {
                     Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
+                }
             }
 
             if (VT13.Get_Keyboard_Key_R() == VT13_Key_Status_PRESSED) // 按下R键刷新UI
@@ -571,26 +574,26 @@ void Class_Chariot::Control_Chassis()
                 Referee_UI_Refresh_Status = Referee_UI_Refresh_Status_DISABLE;
             }
 
-            if(z_key_flag == true)
-            {
-                if (Chassis.Get_Chassis_Control_Type() != Chassis_Control_Type_Drive)
-                {
-                    if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.35f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
-                    {
-                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
-                        Chassis.Set_Target_Omega(0.0f);
-                    }
-                    else
-                    {
-                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
-                        z_key_flag = false;
-                    }
-                }
-                else
-                {
-                    z_key_flag = false;
-                }
-            }
+            // if(z_key_flag == true)
+            // {
+            //     if (Chassis.Get_Chassis_Control_Type() != Chassis_Control_Type_Drive)
+            //     {
+            //         if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.35f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
+            //         {
+            //             Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
+            //             Chassis.Set_Target_Omega(0.0f);
+            //         }
+            //         else
+            //         {
+            //             Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
+            //             z_key_flag = false;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         z_key_flag = false;
+            //     }
+            // }
         }
     }
 
@@ -668,7 +671,7 @@ void Class_Chariot::Control_Gimbal()
                 Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
                 //Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE);
                 //有大PITCH的情况下用
-                if(Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.35f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
+                if(Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.07f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
                 {
                     //Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_type_FOLD);
                     Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE_LOCK);
@@ -691,7 +694,10 @@ void Class_Chariot::Control_Gimbal()
         vt13_r_y = (Math_Abs(VT13.Get_Right_Y()) > DR16_Dead_Zone) ? VT13.Get_Right_Y() : 0;
 
         if (Gimbal.Get_Gimbal_Control_Type() == Gimbal_Control_Type_DISABLE)
+        {
             Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+            Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
+        }
         if (VT13.Get_Button_Right() == VT13_Button_TRIG_FREE_PRESSED) //
         {
             if (Gimbal.Get_Gimbal_Control_Type() == Gimbal_Control_Type_NORMAL)
@@ -790,12 +796,24 @@ void Class_Chariot::Control_Gimbal()
                 }
                 else
                 {
-                    Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_type_FOLD);
+                    //Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_type_FOLD);
+                    Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
                 }
             }
-            else if(VT13.Get_Mouse_Right_Key() == VT13_Key_Status_TRIG_PRESSED_FREE)
+            else
             {
-                Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+                if (Gimbal.Get_Gimbal_Control_Type() != Gimbal_Control_type_FOLD)
+                {
+                    if (Gimbal.Motor_Pitch_2.Get_Now_Angle() < LOCK_PITCH + 0.07f || Gimbal.Motor_Pitch_2.Get_Now_Angle() > 3.10f)
+                    {
+                        Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+                        Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
+                    }
+                    else
+                    {
+                        Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE_LOCK);
+                    }
+                }
             }
             tmp_gimbal_yaw -= VT13.Get_Mouse_X() * DR16_Mouse_Yaw_Angle_Resolution;
             tmp_gimbal_pitch -= VT13.Get_Mouse_Y() * DR16_Mouse_Pitch_Angle_Resolution;
@@ -823,10 +841,14 @@ void Class_Chariot::Control_Gimbal()
                     if (Gimbal.Get_Gimbal_Control_Type() == Gimbal_Control_type_FOLD)
                     {
                         Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+                        Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE_LOCK);
+                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
                     }
                     else
                     {
                         Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_type_FOLD);
+                        // 强制同步：云台 FOLD 时，底盘设为 Drive
+                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
                     }
                 }
                 z_key_last_time = tmp_time;
@@ -849,15 +871,15 @@ void Class_Chariot::Control_Gimbal()
             {
                 if (Gimbal.Get_Gimbal_Control_Type() != Gimbal_Control_type_FOLD)
                 {
-                    if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.35f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
+                    if (Gimbal.Motor_Pitch_2.Get_Now_Angle() > LOCK_PITCH + 0.07f && Gimbal.Motor_Pitch_2.Get_Now_Angle() < 3.13f)
                     {
                         Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE_LOCK);
-                        Gimbal.Motor_Pitch_2.Set_Target_Angle(LOCK_PITCH);
+                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_Drive);
                     }
                     else
                     {
                         Gimbal.Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
-                        Gimbal.Motor_Pitch_2.Set_Target_Angle(LOCK_PITCH);
+                        Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_FLLOW);
                         z_key_flag = false;
                     }
                 }
@@ -866,12 +888,17 @@ void Class_Chariot::Control_Gimbal()
                     z_key_flag = false;
                 }
             }
+            if (Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_Drive)
+            {
+                Chassis.Set_Target_Omega(-VT13.Get_Mouse_X() * DR16_Mouse_Yaw_Angle_Resolution);
+            }
         }
     }  
 		// 设定目标角度
     Gimbal.Set_Target_Yaw_Angle(tmp_gimbal_yaw);
     Gimbal.Set_Target_Pitch_Angle(tmp_gimbal_pitch);
-    //Gimbal.Set_Target_Pitch_Angle_2(tmp_gimbal_pitch_2);    
+    //Gimbal.Set_Target_Pitch_Angle_2(tmp_gimbal_pitch_2);
+
 }
 #endif
 
@@ -1105,6 +1132,12 @@ void Class_Chariot::Control_Booster()
             {
                 Booster.Set_Booster_Control_Type(Booster_Control_Type_CEASEFIRE);
             }
+
+            if (Gimbal.Get_Gimbal_Control_Type() == Gimbal_Control_type_FOLD)
+            {
+                Booster.Set_Friction_Control_Type(Friction_Control_Type_DISABLE);
+                Fric_Status = Fric_Status_CLOSE;
+            }
         }
     }
 }
@@ -1164,7 +1197,7 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
 					
 		// }
         float Chassis_Radian = Motor_Yaw.Get_Now_Radian();
-        float Delta_Radian   = Reference_Angle/57.3f - Chassis_Radian;
+        float Delta_Radian   = Reference_Radian - Chassis_Radian;
 
         Delta_Radian = Normalize_Angle_Radian_PI_to_PI(Delta_Radian);
 

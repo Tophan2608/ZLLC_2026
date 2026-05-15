@@ -237,6 +237,7 @@ void CAN_Init(FDCAN_HandleTypeDef *hcan, CAN_Call_Back Callback_Function)
         // HAL_FDCAN_ConfigGlobalFilter(&hfdcan1,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
         // HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO0, 1);			
         HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_BUS_OFF, 0);
         // 在CAN1初始化中明确禁用FIFO1中断
         //HAL_FDCAN_DeactivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE);
     }
@@ -248,7 +249,7 @@ void CAN_Init(FDCAN_HandleTypeDef *hcan, CAN_Call_Back Callback_Function)
         fdcan_filter.IdType = FDCAN_STANDARD_ID;                       //标准ID
         fdcan_filter.FilterIndex = 0;                                  //滤波器索引                   
         fdcan_filter.FilterType = FDCAN_FILTER_MASK;                   
-        fdcan_filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;           //过滤器0关联到FIFO0  
+        fdcan_filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;           //过滤器0关联到FIFO1  
         fdcan_filter.FilterID1 = 0x00;                               
         fdcan_filter.FilterID2 = 0x00;
 
@@ -257,6 +258,7 @@ void CAN_Init(FDCAN_HandleTypeDef *hcan, CAN_Call_Back Callback_Function)
         // HAL_FDCAN_ConfigGlobalFilter(&hfdcan2,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
         // HAL_FDCAN_ConfigFifoWatermark(&hfdcan2, FDCAN_CFG_RX_FIFO1, 1);
         HAL_FDCAN_ActivateNotification(&hfdcan2, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+        HAL_FDCAN_ActivateNotification(&hfdcan2, FDCAN_IT_BUS_OFF, 0);
     }
     else if (hcan->Instance == FDCAN3)
     {
@@ -275,6 +277,7 @@ void CAN_Init(FDCAN_HandleTypeDef *hcan, CAN_Call_Back Callback_Function)
         HAL_FDCAN_ConfigGlobalFilter(&hfdcan3,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
         HAL_FDCAN_ConfigFifoWatermark(&hfdcan3, FDCAN_CFG_RX_FIFO0, 1);
         HAL_FDCAN_ActivateNotification(&hfdcan3, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        HAL_FDCAN_ActivateNotification(&hfdcan3, FDCAN_IT_BUS_OFF, 0);
     }
     // can_filter_init(hcan);
     // HAL_FDCAN_ActivateNotification(hcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
@@ -333,22 +336,32 @@ void TIM_CAN_PeriodElapsedCallback()
 {
     
     #ifdef CHASSIS
-    static uint8_t mod5 = 0,mod100 = 0,mod20 = 0;
-    mod5++, mod100++,mod20++;
-    if (mod5 == 5)  //200Hz
+    static uint8_t mod2 = 0,mod100 = 0,mod20 = 0;
+    static uint8_t flag2 = 0;
+    mod2++, mod100++,mod20++;
+    if (mod2 == 2) // 250Hz
     {
-        mod5 = 0;
-        //轮向 3508    
-        CAN_Send_Data(&hfdcan1, 0x200, CAN1_0x200_Tx_Data, 8);	
-        CAN_Send_Data(&hfdcan2, 0x68, CAN2_Chassis_Tx_Gimbal_Data, 8);
-        CAN_Send_Data(&hfdcan2, 0x89, CAN2_Chassis_Tx_Gimbal_Data_1, 8);	
-//        //舵向 3508
-        CAN_Send_Data(&hfdcan1, 0x1ff, CAN1_0x1ff_Tx_Data, 8);			
+        mod2 = 0;
+        if (flag2 == 0) 
+        {
+            // 轮向 3508
+            CAN_Send_Data(&hfdcan1, 0x200, CAN1_0x200_Tx_Data, 8);
+            // 舵向 3508
+            CAN_Send_Data(&hfdcan1, 0x1ff, CAN1_0x1ff_Tx_Data, 8);
+        }
+        else
+        {
+            // CAN_Send_Data(&hfdcan2, 0x68, CAN2_Chassis_Tx_Gimbal_Data, 8);
+            // CAN_Send_Data(&hfdcan2, 0x89, CAN2_Chassis_Tx_Gimbal_Data_1, 8);
+        }
+        flag2++;
+        flag2 = flag2 % 2;
     }
-		
+
     if (mod100 == 10) //100Hz
     {
-        		
+        CAN_Send_Data(&hfdcan2, 0x68, CAN2_Chassis_Tx_Gimbal_Data, 8);
+        CAN_Send_Data(&hfdcan2, 0x89, CAN2_Chassis_Tx_Gimbal_Data_1, 8);		
 //        CAN_Send_Data(&hfdcan3, 0x191, CAN3_Chassis_Tx_Data_G, 8);
         mod100 = 0;
     }
@@ -394,10 +407,7 @@ void TIM_CAN_PeriodElapsedCallback()
 			  //CAN_Send_Data(&hfdcan2, 0xf1, CAN2_0xxf1_Tx_Data, 8);
         mod2 = 0;
     }
-    else
-    {
-        CAN_Send_Data(&hfdcan2, 0x141, CAN2_0x141_Tx_Data, 8);
-    }   
+        CAN_Send_Data(&hfdcan2, 0x141, CAN2_0x141_Tx_Data, 8);  
     
     if (mod10 == 10) //100Hz
     {
@@ -466,6 +476,36 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
   /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_FDCAN_TxBufferCompleteCallback could be implemented in the user file
    */
+}
+
+/**
+ * @brief CAN错误状态回调函数
+ *
+ * @param hfdcan CAN句柄
+ * @param ErrorStatusITs 错误状态中断掩码
+ */
+extern "C" void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t ErrorStatusITs)
+{
+    if (ErrorStatusITs & FDCAN_IT_BUS_OFF)
+    {
+        // 停止CAN
+        HAL_FDCAN_Stop(hfdcan);
+        // 重新启动CAN
+        HAL_FDCAN_Start(hfdcan);
+        // 可选：重新激活通知
+        if (hfdcan->Instance == FDCAN1)
+        {
+            HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        }
+        else if (hfdcan->Instance == FDCAN2)
+        {
+            HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+        }
+        else if (hfdcan->Instance == FDCAN3)
+        {
+            HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        }
+    }
 }
 
 

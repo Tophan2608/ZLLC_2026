@@ -104,23 +104,23 @@ void Class_Steering_Wheel_Chassis::Init(float __Velocity_X_Max, float __Velocity
     //舵向电机PID初始化
 
     Motor_Steer[0].PID_Angle.Init(10.0f, 0.0f, 0.0f, 0.0f, Motor_Steer[0].Get_Output_Max(), Motor_Steer[0].Get_Output_Max());
-    Motor_Steer[0].PID_Omega.Init(1200.0f,8.0f, 0.0f, 0.0f, 8000, Motor_Steer[0].Get_Output_Max());
+    Motor_Steer[0].PID_Omega.Init(1000.0f,0.0f, 0.0f, 0.0f, 8000, Motor_Steer[0].Get_Output_Max());
     
     Motor_Steer[1].PID_Angle.Init(10.0f, 0.0f, 0.0f, 0.0f, Motor_Steer[1].Get_Output_Max(), Motor_Steer[1].Get_Output_Max());
-    Motor_Steer[1].PID_Omega.Init(1200.0f, 8.0f, 0.0f, 0.0f, 8000, Motor_Steer[1].Get_Output_Max());
+    Motor_Steer[1].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[1].Get_Output_Max());
 
     Motor_Steer[2].PID_Angle.Init(10.f, 0.0f, 0.0f, 0.0f, Motor_Steer[2].Get_Output_Max(), Motor_Steer[2].Get_Output_Max());
-    Motor_Steer[2].PID_Omega.Init(1200.0f, 8.0f, 0.0f, 0.0f, 8000, Motor_Steer[2].Get_Output_Max());
+    Motor_Steer[2].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[2].Get_Output_Max());
 
     Motor_Steer[3].PID_Angle.Init(10.f, 0.0f, 0.0f, 0.0f, Motor_Steer[3].Get_Output_Max(), Motor_Steer[3].Get_Output_Max());
-    Motor_Steer[3].PID_Omega.Init(1200.0f, 8.0f, 0.0f, 0.0f, 8000, Motor_Steer[3].Get_Output_Max());
+    Motor_Steer[3].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[3].Get_Output_Max());
 
 
     //舵向电机ID初始化
-    Motor_Steer[0].Init(&hfdcan1, DJI_Motor_ID_0x202);
-    Motor_Steer[1].Init(&hfdcan1, DJI_Motor_ID_0x204);
-    Motor_Steer[2].Init(&hfdcan1, DJI_Motor_ID_0x206);
-    Motor_Steer[3].Init(&hfdcan1, DJI_Motor_ID_0x208);
+    Motor_Steer[0].Init(&hfdcan1, DJI_Motor_ID_0x202, DJI_Motor_Control_Method_AGV_MODE, 8.0f);
+    Motor_Steer[1].Init(&hfdcan1, DJI_Motor_ID_0x204, DJI_Motor_Control_Method_AGV_MODE, 8.0f);
+    Motor_Steer[2].Init(&hfdcan1, DJI_Motor_ID_0x206, DJI_Motor_Control_Method_AGV_MODE, 8.0f);
+    Motor_Steer[3].Init(&hfdcan1, DJI_Motor_ID_0x208, DJI_Motor_Control_Method_AGV_MODE, 8.0f);
     //舵向电机零点位置初始化
     // Motor_Steer[0].Set_Zero_Position(-0.07f);
     // Motor_Steer[1].Set_Zero_Position(0.88f);
@@ -386,6 +386,10 @@ void Class_Steering_Wheel_Chassis::Chassis_Speed_Estimate()
     float Chassis_Angle;
     Chassis_Angle = Motor_Yaw->Get_Now_Radian();
     derta_angle = (Reference_Radian - Chassis_Angle);
+    if (Chassis_Control_Type== Chassis_Control_Type_Drive)
+    {
+        derta_angle = (derta_angle + 20.5f * PI / 180.0f);
+    }
     derta_angle = derta_angle < 0 ? (derta_angle + 2 * PI) : derta_angle;
 
     float tmp_ax = Ins_Accel_X_b;
@@ -400,8 +404,8 @@ void Class_Steering_Wheel_Chassis::Chassis_Speed_Estimate()
     tmp_Velocity_Vx = tmp_vx * arm_cos_f32(derta_angle) - tmp_vy * arm_sin_f32(derta_angle);
     tmp_Velocity_Vy = tmp_vx * arm_sin_f32(derta_angle) + tmp_vy * arm_cos_f32(derta_angle);
     //注意数据单位
-    //Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, -IMU->Get_Accel_X_n(), -IMU->Get_Accel_Y_n(), tmp_Omega, IMU->Get_Gyro_Yaw());
     Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, Ins_Accel_X_b, Ins_Accel_Y_b, tmp_Omega, IMU->Get_Gyro_Yaw());
+    // Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, 0.0f, 0.0f, tmp_Omega, IMU->Get_Gyro_Yaw());
     
     Kalman_Filter_Update(&Chassis_Speed_Kalman, NULL);
 
@@ -480,6 +484,10 @@ void Class_Steering_Wheel_Chassis::Stree_Angle_Resolution()
     float Chassis_Angle;
     Chassis_Angle = Motor_Yaw->Get_Now_Radian();
     derta_angle = -(Reference_Radian - Chassis_Angle);
+    if (Chassis_Control_Type== Chassis_Control_Type_Drive)
+    {
+        derta_angle = (derta_angle - 20.5f * PI / 180.0f);
+    }
     derta_angle = derta_angle < 0 ? (derta_angle + 2 * PI) : derta_angle;
 
     float tmp_tx ,tmp_ty;
@@ -487,12 +495,22 @@ void Class_Steering_Wheel_Chassis::Stree_Angle_Resolution()
     tmp_tx = Target_Velocity_X * arm_cos_f32(derta_angle) - Target_Velocity_Y * arm_sin_f32(derta_angle);
     tmp_ty = Target_Velocity_X * arm_sin_f32(derta_angle) + Target_Velocity_Y * arm_cos_f32(derta_angle);
 
+    if (Chassis_Control_Type == Chassis_Control_Type_Drive)
+    {
+        True_Vx[0] = True_Vx[1] = tmp_tx - cosf(PI / 4.f) * Target_Drive_Omega * R_DIST;
+        True_Vx[2] = True_Vx[3] = tmp_tx + cosf(PI / 4.f) * Target_Drive_Omega * R_DIST;
 
-    True_Vx[0] = True_Vx[1] = tmp_tx - cosf(PI/4.f) * Target_Omega *  R_DIST;
-    True_Vx[2] = True_Vx[3] = tmp_tx + cosf(PI/4.f) * Target_Omega *  R_DIST;
+        True_Vy[0] = True_Vy[3] = tmp_ty + sinf(PI / 4.f) * Target_Drive_Omega * R_DIST;
+        True_Vy[1] = True_Vy[2] = tmp_ty - sinf(PI / 4.f) * Target_Drive_Omega * R_DIST;
+    }
+    else
+    {
+        True_Vx[0] = True_Vx[1] = tmp_tx - cosf(PI / 4.f) * Target_Omega * R_DIST;
+        True_Vx[2] = True_Vx[3] = tmp_tx + cosf(PI / 4.f) * Target_Omega * R_DIST;
 
-    True_Vy[0] = True_Vy[3] = tmp_ty + sinf(PI/4.f) * Target_Omega *  R_DIST;
-    True_Vy[1] = True_Vy[2] = tmp_ty - sinf(PI/4.f) * Target_Omega *  R_DIST;
+        True_Vy[0] = True_Vy[3] = tmp_ty + sinf(PI / 4.f) * Target_Omega * R_DIST;
+        True_Vy[1] = True_Vy[2] = tmp_ty - sinf(PI / 4.f) * Target_Omega * R_DIST;
+    }
 
     // 舵轮转动角度的优化处理
     for (int i = 0; i < 4; i++)
@@ -530,7 +548,8 @@ void Class_Steering_Wheel_Chassis::Stree_Angle_Resolution()
             temp_Target_Omega *= -1.0f;
         }
 
-        True_Target_Angle_Radian[i] = Normalize_Angle_Radian_PI_to_PI(delta_Angle + Motor_Steer[i].Get_Now_Zero_Offset_Radian()); // 归一化到 -PI --- PI
+        True_Target_Angle_Radian[i] = Motor_Steer[i].Get_Now_Zero_Offset_Radian() + delta_Angle;
+        //True_Target_Angle_Radian[i] = Normalize_Angle_Radian_PI_to_PI(delta_Angle + Motor_Steer[i].Get_Now_Zero_Offset_Radian()); // 归一化到 -PI --- PI
         Motor_Steer[i].Set_Target_Radian(True_Target_Angle_Radian[i]);
         Motor_Steer[i].Set_Transform_Radian(Motor_Steer[i].Get_Now_Zero_Offset_Radian());
         Motor_Steer[i].TIM_PID_PeriodElapsedCallback();
@@ -562,7 +581,6 @@ void Class_Steering_Wheel_Chassis::Force_Speed_Resolution()
     }
     case (Chassis_Control_Type_FLLOW):
     case (Chassis_Control_Type_SPIN_Positive):
-    case (Chassis_Control_Type_Drive):
     {
 
         PID_Velocity_X.Set_Target(Slope_Velocity_X.Get_Out());
@@ -587,6 +605,83 @@ void Class_Steering_Wheel_Chassis::Force_Speed_Resolution()
         float Chassis_Angle;
         Chassis_Angle = Motor_Yaw->Get_Now_Radian();
         derta_angle = -(Reference_Radian - Chassis_Angle);
+        if (Chassis_Control_Type == Chassis_Control_Type_Drive)
+        {
+            derta_angle = (derta_angle - 20.5f * PI / 180.0f);
+        }
+        derta_angle = derta_angle < 0 ? (derta_angle + 2 * PI) : derta_angle;
+
+        float tmp_force_x = force_x;
+        float tmp_force_y = force_y;
+
+        force_x = tmp_force_x * arm_cos_f32(derta_angle) - tmp_force_y * arm_sin_f32(derta_angle);
+        force_y = tmp_force_x * arm_sin_f32(derta_angle) + tmp_force_y * arm_cos_f32(derta_angle);
+
+        Fx = force_x;
+        Fy = force_y;
+        bbb = derta_angle;
+
+        // 每个轮的扭力
+        float tmp_force[4];
+        for (int i = 0; i < 4; i++)
+        {
+            // 解算到每个轮组的具体摩擦力
+            tmp_force[i] = force_x * arm_cos_f32(Motor_Steer[i].Get_Now_Zero_Offset_Radian()) + force_y * arm_sin_f32(Motor_Steer[i].Get_Now_Zero_Offset_Radian()) + torque_omega / R_DIST * arm_cos_f32(Wheel_Azimuth[i] - Motor_Steer[i].Get_Now_Zero_Offset_Radian());
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            // 摩擦力转换至扭矩
+            Target_Wheel_Torque[i] = tmp_force[i] * WHEEL_RADIUS + Wheel_Speed_Limit_Factor * (Target_Wheel_Omega[i] - Motor_Wheel[i].Get_Now_Omega_Radian());
+            // 动摩擦阻力前馈
+            if (Target_Wheel_Omega[i] > Wheel_Resistance_Omega_Threshold)
+            {
+                Target_Wheel_Torque[i] += Dynamic_Resistance_Wheel_Current[i];
+            }
+            else if (Target_Wheel_Omega[i] < -Wheel_Resistance_Omega_Threshold)
+            {
+                Target_Wheel_Torque[i] -= Dynamic_Resistance_Wheel_Current[i];
+            }
+            else
+            {
+                Target_Wheel_Torque[i] += Motor_Wheel[i].Get_Now_Omega_Radian() / Wheel_Resistance_Omega_Threshold * Dynamic_Resistance_Wheel_Current[i];
+            }
+            
+            Motor_Wheel[i].Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
+            Motor_Wheel[i].Set_Target_Torque(Target_Wheel_Torque[i]);
+            //Motor_Wheel[i].Set_Target_Torque(0.0f);
+            Motor_Wheel[i].TIM_PID_PeriodElapsedCallback();
+        }
+        break;
+    }
+    case (Chassis_Control_Type_Drive):
+    {
+        PID_Velocity_X.Set_Target(Slope_Velocity_X.Get_Out());
+        PID_Velocity_X.Set_Now(Now_Velocity_X);
+        PID_Velocity_X.TIM_Adjust_PeriodElapsedCallback();
+
+        PID_Velocity_Y.Set_Target(Slope_Velocity_Y.Get_Out());
+        PID_Velocity_Y.Set_Now(Now_Velocity_Y);
+        PID_Velocity_Y.TIM_Adjust_PeriodElapsedCallback();
+
+        PID_Omega.Set_Target(Target_Drive_Omega);
+        PID_Omega.Set_Now(Now_Omega);
+        PID_Omega.TIM_Adjust_PeriodElapsedCallback();
+
+        float force_x, force_y, torque_omega;
+
+        force_x = PID_Velocity_X.Get_Out();
+        force_y = PID_Velocity_Y.Get_Out();
+        torque_omega = PID_Omega.Get_Out();
+
+        float derta_angle;
+        float Chassis_Angle;
+        Chassis_Angle = Motor_Yaw->Get_Now_Radian();
+        derta_angle = -(Reference_Radian - Chassis_Angle);
+        if (Chassis_Control_Type == Chassis_Control_Type_Drive)
+        {
+            derta_angle = (derta_angle - 20.5f * PI / 180.0f);
+        }
         derta_angle = derta_angle < 0 ? (derta_angle + 2 * PI) : derta_angle;
 
         float tmp_force_x = force_x;

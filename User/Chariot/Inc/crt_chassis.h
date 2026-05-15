@@ -142,6 +142,7 @@ public:
     inline void Set_Target_Velocity_X(float __Target_Velocity_X);
     inline void Set_Target_Velocity_Y(float __Target_Velocity_Y);
     inline void Set_Target_Omega(float __Target_Omega);
+    inline void Set_Target_Drive_Omega(float __Target_Drive_Omega);
     inline void Set_Now_Velocity_X(float __Now_Velocity_X);
     inline void Set_Now_Velocity_Y(float __Now_Velocity_Y);
     inline void Set_Now_Omega(float __Now_Omega);
@@ -213,6 +214,8 @@ protected:
     float Now_Velocity_Y = 0.0f;
     //当前角速度
     float Now_Omega = 0.0f;
+    //直驱下的目标角速度
+    float Target_Drive_Omega = 0.0f;
 
     //内部函数
     void Speed_Resolution();
@@ -417,6 +420,16 @@ void Class_Steering_Wheel_Chassis::Set_Target_Velocity_Y(float __Target_Velocity
 void Class_Steering_Wheel_Chassis::Set_Target_Omega(float __Target_Omega)
 {
     Target_Omega = __Target_Omega;
+}
+
+/**
+ * @brief 设定目标直驱角速度
+ *
+ * @param __Target_Drive_Omega 目标直驱角速度
+ */
+void Class_Steering_Wheel_Chassis::Set_Target_Drive_Omega(float __Target_Drive_Omega)
+{
+    Target_Drive_Omega = __Target_Drive_Omega;
 }
 
 /**

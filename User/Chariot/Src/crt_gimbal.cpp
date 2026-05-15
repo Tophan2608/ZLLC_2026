@@ -25,6 +25,7 @@
 float YAW_Reference_Angle;
 float YAW_Chassis_Angle;
 float DebugMo = 0.0f;
+#define LOCK_Omega 200.0f
 /**
  * @brief TIM定时器中断计算回调函数
  *
@@ -176,7 +177,7 @@ void Class_Gimbal_Yaw_Motor_LK7025::TIM_PID_PeriodElapsedCallback()
     break;
     case (LK_Motor_Control_Method_ANGLE_LOCK):
     {
-        PID_Angle.Set_Target(YAW_Reference_Angle + 22.4f);
+        PID_Angle.Set_Target(YAW_Reference_Angle + 20.4f);
         PID_Angle.Set_Now(YAW_Chassis_Angle);
         PID_Angle.TIM_Adjust_PeriodElapsedCallback();
         Target_Omega_Angle = PID_Angle.Get_Out();
@@ -253,7 +254,7 @@ void Class_Gimbal::Init()
  */
 float tas = 0.0f;
 float last_tas = 2.0f;
-float fold = 1.53f;
+float fold = 1.71f;
 void Class_Gimbal::Output()
 {
     if (Gimbal_Control_Type == Gimbal_Control_Type_DISABLE)
@@ -285,7 +286,7 @@ void Class_Gimbal::Output()
         {
             //控制方式
             //Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_ANGLE);
-            Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
+            //Motor_Yaw.Set_LK_Motor_Control_Method(LK_Motor_Control_Method_IMU_ANGLE);
             Motor_Pitch.Set_DM_Motor_Control_Method(DM_Motor_Control_Method_MIT_IMU_Angle);
 
             // 限制角度
@@ -293,7 +294,7 @@ void Class_Gimbal::Output()
             Math_Constrain(&Target_Pitch_2_Angle, Min_Pitch_2_Angle, Max_Pitch_2_Angle);
             //Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);
 
-            Motor_Pitch_2.Set_Target_Omega(2.5f);
+            Motor_Pitch_2.Set_Target_Omega(LOCK_Omega);
             //Motor_Pitch_2.Set_Target_Omega(0.05f);
 
             // 设置目标角度
@@ -333,7 +334,7 @@ void Class_Gimbal::Output()
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
             Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);          
-            Motor_Pitch_2.Set_Target_Omega(3.5f);
+            Motor_Pitch_2.Set_Target_Omega(LOCK_Omega);
 
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
@@ -359,7 +360,7 @@ void Class_Gimbal::Output()
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
             Math_Constrain(&Target_Yaw_Angle, Min_Yaw_Angle, Max_Yaw_Angle);
-            Motor_Pitch_2.Set_Target_Omega(3.5f);
+            Motor_Pitch_2.Set_Target_Omega(LOCK_Omega);
 
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
@@ -386,7 +387,7 @@ void Class_Gimbal::Output()
             // 限制角度
             Math_Constrain(&Target_Pitch_Angle, Min_Pitch_Angle, Max_Pitch_Angle);
             Math_Constrain(&Target_Pitch_2_Angle, Min_Pitch_2_Angle, Max_Pitch_2_Angle);
-            Motor_Pitch_2.Set_Target_Omega(3.5f);
+            Motor_Pitch_2.Set_Target_Omega(LOCK_Omega);
 
             // 限制角度范围 处理yaw轴180度问题
             while ((Target_Yaw_Angle - Motor_Yaw.Get_True_Angle_Yaw()) > Max_Yaw_Angle)
@@ -398,9 +399,10 @@ void Class_Gimbal::Output()
                 Target_Yaw_Angle += (2 * Max_Yaw_Angle);
             }
 
+            Target_Yaw_Angle = Motor_Yaw.Get_True_Angle_Yaw();
             // 设置目标角度
             Motor_Yaw.Set_Target_Angle(Target_Yaw_Angle);
-            Motor_Pitch.Set_Target_Angle(Target_Pitch_Angle);
+            Motor_Pitch.Set_Target_Angle(0.0f);
             //Motor_Pitch_2.Set_Target_Angle(Target_Pitch_2_Angle);
             Motor_Pitch_2.Set_Target_Angle(Fold_Pitch_Angle + fold);
         }

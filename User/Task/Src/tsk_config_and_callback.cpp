@@ -162,7 +162,7 @@ void Chassis_Device_CAN2_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             }
             if(DtYAW < 20)
             {
-                //buzzer_setTask(&buzzer, BUZZER_CALIBRATING_PRIORITY);
+                buzzer_setTask(&buzzer, BUZZER_CALIBRATING_PRIORITY);
                 chariot.Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_DISABLE);
             }       
         }
@@ -247,13 +247,18 @@ void Gimbal_Device_CAN1_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
  */
 float Dts ;
 uint32_t last_cnts = 0;
+float DtYAW;
+uint32_t last_cntyaw = 0;
 void Gimbal_Device_CAN2_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
 {
     switch (CAN_RxMessage->Header.Identifier)
     {
         case(0x141):
         {
-						//Dt2 = 1.0f/DWT_GetDeltaT(&last_cnt2);
+            if(CAN_RxMessage->Data[1] != 0)
+            {
+			    DtYAW = 1.0f/DWT_GetDeltaT(&last_cntyaw);
+            }
             chariot.Gimbal.Motor_Yaw.CAN_RxCpltCallback(CAN_RxMessage->Data);
         }
         break;
@@ -456,7 +461,6 @@ void Task1ms_TIM5_Callback()
 
     /************ 判断设备在线状态判断 50ms (所有device:电机，遥控器，裁判系统等) ***************/
 
-    //buzzer_taskScheduler(&buzzer);
     chariot.TIM1msMod50_Alive_PeriodElapsedCallback();
     //HAL_IWDG_Refresh(&hiwdg1);//252ms进行一次喂狗
 
@@ -483,7 +487,6 @@ void Task1ms_TIM5_Callback()
     #elif defined(CHASSIS)
         //buzzer_taskScheduler(&buzzer);
     #endif
-        //buzzer_setTask(&buzzer, BUZZER_DJI_STARTUP_PRIORITY);
         static int mod2 = 0;
         mod2++;
         if(mod2 == 2)
@@ -593,6 +596,7 @@ extern "C" void Task_Init()
 
     /********************************* 使能调度时钟 *********************************/
 
+    buzzer_setTask(&buzzer, BUZZER_DJI_STARTUP_PRIORITY);
     HAL_TIM_Base_Start_IT(&htim4);
     HAL_TIM_Base_Start_IT(&htim5);
 }
@@ -630,11 +634,10 @@ extern "C" void Task_Init()
         JudgeReceiveData.Chassis_Control_Type = chariot.Chassis.Get_Chassis_Control_Type();
         JudgeReceiveData.Pitch_Angle = chariot.Gimbal_Tx_Pitch_Angle; // pitch角度
         //JudgeReceiveData.Supercap_Voltage = chariot.Chassis.Supercap.Get_Voltage(); // 超电压
-        JudgeReceiveData.Chassis_Gimbal_Diff = chariot.Motor_Yaw.Get_Now_Angle(); // 底盘角度
-        
+        JudgeReceiveData.Chassis_Gimbal_Diff = chariot.Motor_Yaw.Get_Now_Angle(); // 底盘角度    
 
         if (chariot.Referee_UI_Refresh_Status == Referee_UI_Refresh_Status_ENABLE)
-            Init_Cnt = 2000;
+            Init_Cnt = 255;
 
     }
 

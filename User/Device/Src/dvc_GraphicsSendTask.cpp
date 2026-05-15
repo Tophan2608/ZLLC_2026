@@ -161,7 +161,8 @@ void Send_toReferee(uint16_t cmd_id, uint16_t data_len)
 	Append_CRC16_Check_Sum(Transmit_Pack, Frame_Length);
 
 	// 对于状态变化类消息，增加发送次数为3次，提高可靠性
-	uint8_t send_cnt = (cmd_id == Drawing_Char_ID) ? 3 : 1;
+	//uint8_t send_cnt = (cmd_id == Drawing_Char_ID) ? 3 : 1;
+	uint8_t send_cnt = 3;
 	while (send_cnt)
 	{
 		send_cnt--;
@@ -375,25 +376,38 @@ graphic_data_struct_t *Arc_Draw(uint8_t layer, int Op_Type, uint16_t startx, uin
  *形    参: 无
  *返 回 值: 无
  **********************************************************************************************************/
-float ll = 0.41;
-float lx = 0.31;
-float rl = 0.59;
-float rx = 0.69;
 
 void Lanelines_Init(void)
 {
 	static uint8_t LaneLineName1[] = "LL1";
 	static uint8_t LaneLineName2[] = "LL2";
+	static uint8_t optype;
 	graphic_data_struct_t *P_graphic_data;
-	// 第一条车道线
-	P_graphic_data = Line_Draw(1, Op_Add, SCREEN_LENGTH * ll, SCREEN_WIDTH * 0.3, SCREEN_LENGTH * 0.25, 0, 4, Orange, LaneLineName1);
-	memcpy(data_pack, (uint8_t *)P_graphic_data, DRAWING_PACK);
-	// 第二条车道线
-	P_graphic_data = Line_Draw(1, Op_Add, SCREEN_LENGTH * rl, SCREEN_WIDTH * 0.3, SCREEN_LENGTH * 0.75, 0, 4, Orange, LaneLineName2);
-	memcpy(&data_pack[DRAWING_PACK], (uint8_t *)P_graphic_data, DRAWING_PACK);
+
+	// 确定操作类型
+	optype = (Init_Cnt == 0) ? Op_Change : Op_Add;
+
+	if (JudgeReceiveData.Chassis_Control_Type == Chassis_Control_Type_Drive)
+	{
+		// 第一条车道线
+		P_graphic_data = Line_Draw(1, optype, 650, 0, 1145, 450, 4, Orange, LaneLineName1);
+		memcpy(data_pack, (uint8_t *)P_graphic_data, DRAWING_PACK);
+		// 第二条车道线
+		P_graphic_data = Line_Draw(1, optype, 1920, 180, 1419, 440, 4, Orange, LaneLineName2);
+		memcpy(&data_pack[DRAWING_PACK], (uint8_t *)P_graphic_data, DRAWING_PACK);
+	}
+	else
+	{
+		// 第一条车道线
+		P_graphic_data = Line_Draw(1, optype, SCREEN_LENGTH * 0.41, SCREEN_WIDTH * 0.3, SCREEN_LENGTH * 0.25, 0, 4, Orange, LaneLineName1);
+		memcpy(data_pack, (uint8_t *)P_graphic_data, DRAWING_PACK);
+		// 第二条车道线
+		P_graphic_data = Line_Draw(1, optype, SCREEN_LENGTH * 0.59, SCREEN_WIDTH * 0.3, SCREEN_LENGTH * 0.75, 0, 4, Orange, LaneLineName2);
+		memcpy(&data_pack[DRAWING_PACK], (uint8_t *)P_graphic_data, DRAWING_PACK);
+	}
+
 	Send_UIPack(Drawing_Graphic2_ID, JudgeReceiveData.robot_id, JudgeReceiveData.robot_id + 0x100, data_pack, DRAWING_PACK * 2); // 发送两个图形
 }
-
 /**********************************************************************************************************
  *函 数 名: Shootlines_Init
  *功能说明: 枪口初始化
@@ -935,14 +949,20 @@ void GraphicSendtask(void)
 	static uint8_t last_status_type = 0;			   // 上次变化的状态类型
 	static uint32_t last_update_time = 0;			   // 上次更新时间
 	static uint32_t current_time = 0;				   // 当前时间
+	static uint32_t last_update_time_value = 0;			   // 上次数值更新时间
 
-	// 获取当前时间（假设有HAL_GetTick函数）
-	current_time = HAL_GetTick();
+	// 获取当前时间
+	current_time = DWT_GetTimeline_ms();
 
 	// 初始化阶段发送所有UI元素
 	if (Init_Cnt > 0)
 	{
 		Init_Cnt--;
+		if(Init_Cnt == 254)
+		{
+			referee_dma_busy = 0;
+			referee_dma_count = 0;
+		}
 
 		if (Init_Cnt % 2 == 0)
 		{
@@ -971,6 +991,22 @@ void GraphicSendtask(void)
 
 		return;
 	}
+
+	if(referee_dma_busy)
+	{
+		uint32_t update_time_value = DWT_GetTimeline_ms();
+		if(update_time_value - last_update_time_value > 500)
+		{
+			last_update_time_value = update_time_value;
+			referee_dma_busy = 0;
+			referee_dma_count = 0;
+		}
+	}
+	else
+	{
+		last_update_time_value = DWT_GetTimeline_ms();
+	}
+	
 	// 状态机处理
 	switch (ui_state)
 	{
@@ -997,6 +1033,16 @@ void GraphicSendtask(void)
 			break;
 		}
 
+		if (Last_JudgeReceiveData.Chassis_Control_Type != JudgeReceiveData.Chassis_Control_Type)
+		{
+			// 底盘控制类型变化
+			ui_state = UI_STATE_STATUS_UPDATE;
+			last_status_type = 3;
+			status_update_retry = 0;
+			last_update_time = current_time;
+			break;
+		}
+
 		// 如果没有状态变化，且距离上次数值更新已经过去足够时间，则进入数值更新状态
 		if (current_time - last_update_time > 10) // 10ms更新一次数值
 		{
@@ -1015,6 +1061,10 @@ void GraphicSendtask(void)
 		case 2: // 云台控制类型
 			GIMLine_Change(0);
 			Last_JudgeReceiveData.Gimbal_Control_Type = JudgeReceiveData.Gimbal_Control_Type;
+			break;
+		case 3: // 底盘控制类型
+			Lanelines_Init();
+			Last_JudgeReceiveData.Chassis_Control_Type = JudgeReceiveData.Chassis_Control_Type;
 			break;
 		}
 
