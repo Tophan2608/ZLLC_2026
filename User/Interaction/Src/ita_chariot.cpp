@@ -28,6 +28,7 @@
 
 uint16_t gimbal_lock = 2;
 uint16_t run_time = 1;
+bool Reset_Pitch_2 = false;
 /**
  * @brief 控制交互端初始化
  *
@@ -167,7 +168,7 @@ void Class_Chariot::CAN_Chassis_Rx_Gimbal_Callback(uint8_t *Rx_Data)
     float Feedback_Angle =  0.0f;
     if(Chassis.Get_Chassis_Control_Type() == Chassis_Control_Type_SPIN_Positive)
     {
-        Feedback_Angle = -0.057f * Chassis.Get_Spin_Omega();
+        //Feedback_Angle = -0.057f * Chassis.Get_Spin_Omega();
     }
     else
     {
@@ -253,14 +254,11 @@ void Class_Chariot::CAN_Gimbal_Rx_Chassis_Callback()
     game_stage = (Enum_Referee_Game_Status_Stage)CAN_Manage_Object->Rx_Buffer.Data[1];
     memcpy(&Shooter_Barrel_Heat_Limit, CAN_Manage_Object->Rx_Buffer.Data + 2, sizeof(uint16_t));
     memcpy(&Shooter_Barrel_Cooling_Value, CAN_Manage_Object->Rx_Buffer.Data + 4, sizeof(uint16_t));
-    //memcpy(&tmp_shooter_speed, CAN_Manage_Object->Rx_Buffer.Data + 6, sizeof(uint16_t));
     memcpy(&Shooter_Barrel_Heat, CAN_Manage_Object->Rx_Buffer.Data + 6, sizeof(uint16_t));
     Shooter_Speed = tmp_shooter_speed / 10.0f;
     Referee.Set_Robot_ID(robo_id);
-    //Referee.Set_Booster_17mm_1_Heat(Shooter_Barrel_Heat);
     Referee.Set_Booster_17mm_1_Heat_Max(Shooter_Barrel_Heat_Limit);
     Referee.Set_Game_Stage(game_stage);
-    //Referee.Set_Booster_Speed(Shooter_Speed);
     Referee.Set_Booster_17mm_1_Heat(Shooter_Barrel_Heat);
     Referee.Set_Booster_17mm_1_Heat_CD(Shooter_Barrel_Cooling_Value);
 }
@@ -761,13 +759,10 @@ void Class_Chariot::Control_Gimbal()
             //         Gimbal.MiniPC->Set_Antispin_Type(Antispin_On);
             //     }
             // }
-            // G键按下切换Pitch锁定模式和free模式
+            // G键按下重新使能大pitch电机
             if (DR16.Get_Keyboard_Key_G() == DR16_Key_Status_TRIG_FREE_PRESSED)
             {
-                if (Pitch_Control_Status == Pitch_Status_Control_Free)
-                    Pitch_Control_Status = Pitch_Status_Control_Lock;
-                else
-                    Pitch_Control_Status = Pitch_Status_Control_Free;
+                Reset_Pitch_2 = true;
             }
             // R键切换云台折叠方式
             // if (DR16.Get_Keyboard_Key_R() == DR16_Key_Status_TRIG_FREE_PRESSED)
@@ -859,14 +854,12 @@ void Class_Chariot::Control_Gimbal()
             {
 
             }
-            // G键按下切换Pitch锁定模式和free模式
-            // if (VT13.Get_Keyboard_Key_G() == VT13_Key_Status_TRIG_FREE_PRESSED)
-            // {
-            //     if (Pitch_Control_Status == Pitch_Status_Control_Free)
-            //         Pitch_Control_Status = Pitch_Status_Control_Lock;
-            //     else
-            //         Pitch_Control_Status = Pitch_Status_Control_Free;
-            // }
+            if (VT13.Get_Keyboard_Key_G() == VT13_Key_Status_TRIG_FREE_PRESSED)
+            {
+                Reset_Pitch_2 = true;
+                Gimbal.Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+                z_key_flag == true;
+            }
             if(z_key_flag == true)
             {
                 if (Gimbal.Get_Gimbal_Control_Type() != Gimbal_Control_type_FOLD)
@@ -1002,6 +995,7 @@ void Class_Chariot::Control_Booster()
             else{
             if (VT13.Get_Yaw() > -0.2f && VT13.Get_Yaw() < 0.2f)
             {
+                Booster.Set_Booster_Control_Type(Booster_Control_Type_CEASEFIRE);
                 Shoot_Flag = 0;
             }
             if (VT13.Get_Yaw() < -0.8f && Shoot_Flag == 0) // 单发
@@ -1011,8 +1005,7 @@ void Class_Chariot::Control_Booster()
             }
             if (VT13.Get_Yaw() > 0.8f && Shoot_Flag == 0) // 五连发
             {
-                Booster.Set_Booster_Control_Type(Booster_Control_Type_MULTI);
-                Shoot_Flag = 1;
+                Booster.Set_Booster_Control_Type(Booster_Control_Type_REPEATED);
             }
             }
         }
@@ -1205,8 +1198,8 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
         PID_Chassis_Follow.Set_Now(Chassis_Radian*57.3f);
 
 		PID_Chassis_Follow.TIM_Adjust_PeriodElapsedCallback();
-		Chassis.Set_Target_Omega(PID_Chassis_Follow.Get_Out());
-
+		 Chassis.Set_Target_Omega(PID_Chassis_Follow.Get_Out());
+        //Chassis.Set_Target_Omega(0.0f);
         change_time = 0;
 	}
 		
@@ -1543,6 +1536,20 @@ void Class_Chariot::TIM1msMod50_Alive_PeriodElapsedCallback()
         {
             //buzzer_setTask(&buzzer, BUZZER_DEVICE_OFFLINE_PRIORITY);
             Chassis.Set_Chassis_Control_Type(Chassis_Control_Type_DISABLE);
+        }
+        if (referee_dma_busy)
+        {
+            uint32_t update_time_value = DWT_GetTimeline_ms();
+            if (update_time_value - last_update_time_value > 50000)
+            {
+                last_update_time_value = update_time_value;
+//                referee_dma_busy = 0;
+//                referee_dma_count = 0;
+            }
+        }
+        else
+        {
+            last_update_time_value = DWT_GetTimeline_ms();
         }
 #elif defined(GIMBAL)
 

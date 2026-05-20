@@ -215,8 +215,8 @@ public:
     float Cooling_Value = 10.0f; // 裁判冷却值
 
     // 收缩参数（可调）
-    float Tau0 = 0.835f;           // 提前收缩时间
-    float Tau1 = 0.14f;           // 收缩陡度
+    float Tau0 = 0.835f;         // 提前收缩时间
+    float Tau1 = 0.14f;          // 收缩陡度
     float Recover_Ratio = 0.85f; // 恢复比例
 
     bool Overheat_Flag = false;
@@ -224,6 +224,9 @@ public:
     // 射速相关
     float Base_Frequency = 15.0f; // f0
     float Balance_Frequency = 0.0f;
+
+    float smax = 170.f;
+    float cools = 7.0f;
     /**********************************/
     void Init();
 

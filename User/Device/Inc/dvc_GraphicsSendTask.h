@@ -265,5 +265,8 @@ extern unsigned char JudgeSend[SEND_MAX_SIZE];
 extern JudgeReceive_t JudgeReceiveData;
 extern JudgeReceive_t Last_JudgeReceiveData;
 extern uint8_t Init_Cnt;
+extern volatile uint8_t referee_dma_busy;
+extern uint32_t last_update_time_value;
+extern uint8_t referee_dma_count;
 
 #endif

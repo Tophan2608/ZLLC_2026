@@ -112,7 +112,7 @@ uint8_t CAN3_0x147_Tx_Data[8];
 uint8_t CAN3_0x148_Tx_Data[8];
 
 
-uint8_t CAN2_0x03_test[8]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFC};
+uint8_t CAN_DM4340_Reset[8]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFB};
 /* Private function declarations ---------------------------------------------*/
 
 /* function prototypes -------------------------------------------------------*/
@@ -375,7 +375,7 @@ void TIM_CAN_PeriodElapsedCallback()
 //        CAN_Send_Data(&hfdcan3, 0x198, CAN3_Chassis_Tx_Data_D, 8);
 //        CAN_Send_Data(&hfdcan3, 0x196, CAN3_Chassis_Tx_Data_F, 8);
         //超电
-        CAN_Send_Data(&hfdcan2, 0x66, CAN_Supercap_Tx_Data, 8);
+        CAN_Send_Data(&hfdcan3, 0x66, CAN_Supercap_Tx_Data, 8);
         mod20 = 0;
     }
     #elif defined (GIMBAL)
@@ -412,6 +412,12 @@ void TIM_CAN_PeriodElapsedCallback()
     if (mod10 == 10) //100Hz
     {
         mod10 = 0;
+    }
+
+    if (Reset_Pitch_2)
+    {
+        CAN_Send_Data(&hfdcan1, 0xf2, CAN_DM4340_Reset, 8);
+        Reset_Pitch_2 = false; // 重置标志位
     }
     #endif
 

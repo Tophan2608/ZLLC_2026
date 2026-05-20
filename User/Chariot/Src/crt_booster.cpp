@@ -396,7 +396,7 @@ void Class_Booster::Output()
         float S = 1.0f / (1.0f + exp((τ - Tau0) / Tau1));
 
         // ---------- 平衡频率 ----------
-        Balance_Frequency = Cooling_Value / 10.0f;
+        Balance_Frequency = Cooling_Value / 10.0f * 0.85f;
 
         // ---------- 目标角速度 ----------
         float omega_balance = Balance_Frequency * (2.5f * 2.0f * PI / 9.0f);
@@ -464,9 +464,11 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     // Heat_Max = Referee->Get_Booster_17mm_1_Heat_Max();
     // Cooling_Value = Referee->Get_Booster_17mm_1_Heat_CD();
 
-    Heat_Max = Referee->Get_Booster_17mm_1_Heat_Max();
+    //Heat_Max = Referee->Get_Booster_17mm_1_Heat_Max();
+    Heat_Max = smax;
     Heat_Local = Referee->Get_Booster_17mm_1_Heat();
-    Cooling_Value = Referee->Get_Booster_17mm_1_Heat_CD();
+    // Cooling_Value = Referee->Get_Booster_17mm_1_Heat_CD();
+    Cooling_Value = cools;
     FSM_Heat_Detect.Reload_TIM_Status_PeriodElapsedCallback();
     //卡弹处理
     FSM_Antijamming.Reload_TIM_Status_PeriodElapsedCallback();

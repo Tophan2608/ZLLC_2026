@@ -56,14 +56,14 @@ uint8_t Transmit_Pack[128];				   // 裁判系统发送帧
 uint8_t data_pack[DRAWING_PACK * 7] = {0}; // 数据段部分
 uint8_t DMAsendflag;
 
-#define REFEREE_DMA_TX_QUEUE_DEPTH 4
+#define REFEREE_DMA_TX_QUEUE_DEPTH 40
 #define REFEREE_DMA_MAX_PACKET_LEN SEND_MAX_SIZE
 
 static RefereeDMAPacket_t referee_dma_queue[REFEREE_DMA_TX_QUEUE_DEPTH];
 static uint8_t referee_dma_head = 0;
 static uint8_t referee_dma_tail = 0;
-static uint8_t referee_dma_count = 0;
-static volatile uint8_t referee_dma_busy = 0;
+uint8_t referee_dma_count = 0;
+volatile uint8_t referee_dma_busy = 0;
 
 static inline uint8_t Referee_DMA_QueueFull(void)
 {
@@ -102,9 +102,9 @@ void Referee_DMA_EnqueuePacket(const uint8_t *data, uint16_t len)
         return;
     }
 
-    if (Referee_DMA_QueueFull()) {
-        return;
-    }
+    // if (Referee_DMA_QueueFull()) {
+    //     return;
+    // }
 
     memcpy(referee_dma_queue[referee_dma_tail].data, data, len);
     referee_dma_queue[referee_dma_tail].len = len;
@@ -161,15 +161,16 @@ void Send_toReferee(uint16_t cmd_id, uint16_t data_len)
 	Append_CRC16_Check_Sum(Transmit_Pack, Frame_Length);
 
 	// 对于状态变化类消息，增加发送次数为3次，提高可靠性
-	//uint8_t send_cnt = (cmd_id == Drawing_Char_ID) ? 3 : 1;
-	uint8_t send_cnt = 3;
+	uint8_t send_cnt = (cmd_id == Drawing_Char_ID) ? 3 : 1;
+	// uint8_t send_cnt = 3;
 	while (send_cnt)
 	{
 		send_cnt--;
 		Referee_DMA_EnqueuePacket(Transmit_Pack, Frame_Length);
 	}
 }
-
+uint32_t lastcnt;
+float dtw;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -177,9 +178,10 @@ extern "C" {
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart == &huart10) {
-        referee_dma_busy = 0;
-        Referee_DMA_Dequeue();
-        Referee_DMA_StartNext();
+		dtw = 1.0f/DWT_GetDeltaT(&lastcnt);
+        // referee_dma_busy = 0;
+        // Referee_DMA_Dequeue();
+        // Referee_DMA_StartNext();
     }
 }
 
@@ -920,6 +922,40 @@ void PitchUI_Change(float Pitch, uint8_t Init_Cnt)
 }
 
 /**********************************************************************************************************
+ *函 数 名: Scap_Change
+ *功能说明: 超电容量百分比
+ *形    参: 无
+ *返 回 值: 无
+ **********************************************************************************************************/
+uint16_t ababa =0;
+void Scap_Change(float Scap_Percentage, uint8_t Init_Cnt)
+{
+	static uint8_t ScapLineName[] = "SCP";
+	static uint8_t optype;
+	graphic_data_struct_t *P_graphic_data;
+
+	uint16_t x_bias = 0;
+	uint16_t y_bias = 0;
+
+	// 圆弧半径
+	uint32_t radius = 300;
+
+	// 计算圆弧的起始和终止角度
+	uint16_t startAngle = 270; 
+	uint16_t endAngle = (uint16_t)(startAngle + (Scap_Percentage / 100.0f) * 40); // 根据百分比计算结束角度
+	ababa = endAngle;
+
+	// 确定操作类型
+	optype = (Init_Cnt == 0) ? Op_Change : Op_Add;
+
+	P_graphic_data = Arc_Draw(0, optype, SCREEN_LENGTH * 0.5 + x_bias, SCREEN_WIDTH * 0.5 + y_bias, startAngle, endAngle, 360, 360, 10, Green, ScapLineName);
+	memcpy(data_pack, (uint8_t *)P_graphic_data, DRAWING_PACK);
+
+	// 发送图形数据
+	Send_UIPack(Drawing_Graphic1_ID, JudgeReceiveData.robot_id, JudgeReceiveData.robot_id + 0x100, data_pack, DRAWING_PACK);
+}
+
+/**********************************************************************************************************
  *函 数 名: GraphicSendtask
  *功能说明: ͼ�η�������
  *形    参: ��
@@ -931,6 +967,8 @@ static uint32_t ui_update_counter = 0;
 
 // 添加状态变化标志
 static uint8_t status_changed = 0;
+
+uint32_t last_update_time_value = 0;			   // 上次数值更新时间
 
 // 添加UI更新状态枚举
 typedef enum
@@ -949,11 +987,16 @@ void GraphicSendtask(void)
 	static uint8_t last_status_type = 0;			   // 上次变化的状态类型
 	static uint32_t last_update_time = 0;			   // 上次更新时间
 	static uint32_t current_time = 0;				   // 当前时间
-	static uint32_t last_update_time_value = 0;			   // 上次数值更新时间
 
 	// 获取当前时间
 	current_time = DWT_GetTimeline_ms();
 
+	if (huart10.hdmatx->State == HAL_DMA_STATE_READY)
+	{
+		referee_dma_busy = 0;
+		Referee_DMA_Dequeue();
+		Referee_DMA_StartNext();
+	}
 	// 初始化阶段发送所有UI元素
 	if (Init_Cnt > 0)
 	{
@@ -985,26 +1028,12 @@ void GraphicSendtask(void)
 		BoostLine_Change();
 		PitchUI_Change(0, Init_Cnt);
 		GIMLine_Change(Init_Cnt);
+		Scap_Change(100, Init_Cnt);
 
 		// 初始化完成后，保存当前数据作为比较基准
 		memcpy(&Last_JudgeReceiveData, &JudgeReceiveData, sizeof(JudgeReceive_t));
 
 		return;
-	}
-
-	if(referee_dma_busy)
-	{
-		uint32_t update_time_value = DWT_GetTimeline_ms();
-		if(update_time_value - last_update_time_value > 500)
-		{
-			last_update_time_value = update_time_value;
-			referee_dma_busy = 0;
-			referee_dma_count = 0;
-		}
-	}
-	else
-	{
-		last_update_time_value = DWT_GetTimeline_ms();
 	}
 	
 	// 状态机处理
@@ -1094,9 +1123,9 @@ void GraphicSendtask(void)
 		}
 
 		// 更新超级电容电压
-		if (fabs(Last_JudgeReceiveData.Supercap_Voltage - JudgeReceiveData.Supercap_Voltage) >= 0.01f)
+		if (fabs(Last_JudgeReceiveData.Supercap_Voltage - JudgeReceiveData.Supercap_Voltage) >= 2.0f)
 		{
-			SCapLine_Change();
+			Scap_Change(JudgeReceiveData.Supercap_Voltage, 0);
 			Last_JudgeReceiveData.Supercap_Voltage = JudgeReceiveData.Supercap_Voltage;
 		}
 

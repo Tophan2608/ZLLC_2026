@@ -75,7 +75,7 @@ float Chassis_Speed_Kalman_R[36] = {15.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Vx
 void Class_Steering_Wheel_Chassis::Init(float __Velocity_X_Max, float __Velocity_Y_Max, float __Omega_Max, float __Steer_Power_Ratio)
 {
     //Power_Limit.Init(400,3500);
-    Supercap.Init(&hfdcan2,100.f);
+    Supercap.Init(&hfdcan3,100.f);
     
     Velocity_X_Max = __Velocity_X_Max;
     Velocity_Y_Max = __Velocity_Y_Max;
@@ -103,17 +103,17 @@ void Class_Steering_Wheel_Chassis::Init(float __Velocity_X_Max, float __Velocity
     
     //舵向电机PID初始化
 
-    Motor_Steer[0].PID_Angle.Init(10.0f, 0.0f, 0.0f, 0.0f, Motor_Steer[0].Get_Output_Max(), Motor_Steer[0].Get_Output_Max());
-    Motor_Steer[0].PID_Omega.Init(1000.0f,0.0f, 0.0f, 0.0f, 8000, Motor_Steer[0].Get_Output_Max());
+    Motor_Steer[0].PID_Angle.Init(35.0f, 0.0f, 0.0f, 0.0f, 15.0f, 15.0f);
+    Motor_Steer[0].PID_Omega.Init(700.0f,0.0f, 0.0f, 0.0f, 8000, Motor_Steer[0].Get_Output_Max());
     
-    Motor_Steer[1].PID_Angle.Init(10.0f, 0.0f, 0.0f, 0.0f, Motor_Steer[1].Get_Output_Max(), Motor_Steer[1].Get_Output_Max());
-    Motor_Steer[1].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[1].Get_Output_Max());
+    Motor_Steer[1].PID_Angle.Init(35.0f, 0.0f, 0.0f, 0.0f, 15.0f, 15.0f);
+    Motor_Steer[1].PID_Omega.Init(700.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[1].Get_Output_Max());
 
-    Motor_Steer[2].PID_Angle.Init(10.f, 0.0f, 0.0f, 0.0f, Motor_Steer[2].Get_Output_Max(), Motor_Steer[2].Get_Output_Max());
-    Motor_Steer[2].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[2].Get_Output_Max());
+    Motor_Steer[2].PID_Angle.Init(35.0f, 0.0f, 0.0f, 0.0f, 15.0f, 15.0f);
+    Motor_Steer[2].PID_Omega.Init(700.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[2].Get_Output_Max());
 
-    Motor_Steer[3].PID_Angle.Init(10.f, 0.0f, 0.0f, 0.0f, Motor_Steer[3].Get_Output_Max(), Motor_Steer[3].Get_Output_Max());
-    Motor_Steer[3].PID_Omega.Init(1000.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[3].Get_Output_Max());
+    Motor_Steer[3].PID_Angle.Init(35.0f, 0.0f, 0.0f, 0.0f, 15.0f, 15.0f);
+    Motor_Steer[3].PID_Omega.Init(700.0f, 0.0f, 0.0f, 0.0f, 8000, Motor_Steer[3].Get_Output_Max());
 
 
     //舵向电机ID初始化
@@ -127,9 +127,9 @@ void Class_Steering_Wheel_Chassis::Init(float __Velocity_X_Max, float __Velocity
     // Motor_Steer[2].Set_Zero_Position(2.42f);
     // Motor_Steer[3].Set_Zero_Position(-1.13f);
     Motor_Steer[0].Set_Zero_Position(-2.99f);
-    Motor_Steer[1].Set_Zero_Position(1.50f);
-    Motor_Steer[2].Set_Zero_Position(1.55f);
-    Motor_Steer[3].Set_Zero_Position(-2.47f);
+    Motor_Steer[1].Set_Zero_Position(-1.20f);
+    Motor_Steer[2].Set_Zero_Position(-2.84f);
+    Motor_Steer[3].Set_Zero_Position(-0.36f);
     #endif
 
     // 底盘速度xPID, 输出摩擦力
@@ -404,8 +404,8 @@ void Class_Steering_Wheel_Chassis::Chassis_Speed_Estimate()
     tmp_Velocity_Vx = tmp_vx * arm_cos_f32(derta_angle) - tmp_vy * arm_sin_f32(derta_angle);
     tmp_Velocity_Vy = tmp_vx * arm_sin_f32(derta_angle) + tmp_vy * arm_cos_f32(derta_angle);
     //注意数据单位
-    Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, Ins_Accel_X_b, Ins_Accel_Y_b, tmp_Omega, IMU->Get_Gyro_Yaw());
-    // Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, 0.0f, 0.0f, tmp_Omega, IMU->Get_Gyro_Yaw());
+    //Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, Ins_Accel_X_b, Ins_Accel_Y_b, tmp_Omega, IMU->Get_Gyro_Yaw());
+    Set_Chassis_Kalman_Measure(tmp_Velocity_Vx, tmp_Velocity_Vy, 0.0f, 0.0f, tmp_Omega, IMU->Get_Gyro_Yaw());
     
     Kalman_Filter_Update(&Chassis_Speed_Kalman, NULL);
 
@@ -774,7 +774,7 @@ void Class_Steering_Wheel_Chassis::TIM_Calculate_PeriodElapsedCallback(Enum_Spri
 
         if (Supercap.Get_Supercap_Status() != Supercap_Status_DISABLE && __Sprint_Status == Sprint_Status_ENABLE)
         {
-            Power_Management.Max_Power = 60.f + Power_Management.Buffer_Power + Referee->Get_Chassis_Power_Max();
+            Power_Management.Max_Power = Supercap.Get_Buffer_Power() * 0.9f + Power_Management.Buffer_Power + Referee->Get_Chassis_Power_Max();
             if(Supercap.Get_Buffer_Power() <= 60.f)
             {
                 Power_Management.Max_Power = Referee->Get_Chassis_Power_Max(); 
@@ -793,8 +793,6 @@ void Class_Steering_Wheel_Chassis::TIM_Calculate_PeriodElapsedCallback(Enum_Spri
         Chassis_Buffer = 0.0f;
     }
 
-    // Power_Management.Max_Power = Max_Power_test;
-    // Chassis_Buffer = 0.0f;
     #ifdef AGV
     for (int i = 0; i < 4; i++)         //数据传递处理
     {

@@ -32,6 +32,7 @@ class Class_Chariot;
 //云台折叠互斥锁
 extern uint16_t gimbal_lock;
 extern uint16_t run_time;
+extern bool Reset_Pitch_2;
 /* Exported types ------------------------------------------------------------*/
 
 /**

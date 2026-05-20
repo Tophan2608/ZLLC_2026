@@ -148,11 +148,6 @@ void Chassis_Device_CAN2_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             chariot.CAN_Chassis_Rx_Gimbal_Callback_2();
         }
         break;						
-        case (0x67)://超电接收
-        {
-            chariot.Chassis.Supercap.CAN_RxCpltCallback(CAN_RxMessage->Data);
-        }
-        break;
         case(0x141)://给yaw进行通信
         { 
             if(CAN_RxMessage->Data[1] != 0)
@@ -198,6 +193,11 @@ void Chassis_Device_CAN3_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             chariot.Chassis.Motor_Steer[3].MA600_Data_Process(CAN_RxMessage);
         }   
         break;     
+        case (0x67)://超电接收
+        {
+            chariot.Chassis.Supercap.CAN_RxCpltCallback(CAN_RxMessage->Data);
+        }
+        break;
     }
 }
 #endif
@@ -633,7 +633,7 @@ extern "C" void Task_Init()
         JudgeReceiveData.robot_id = chariot.Referee.Get_ID();
         JudgeReceiveData.Chassis_Control_Type = chariot.Chassis.Get_Chassis_Control_Type();
         JudgeReceiveData.Pitch_Angle = chariot.Gimbal_Tx_Pitch_Angle; // pitch角度
-        //JudgeReceiveData.Supercap_Voltage = chariot.Chassis.Supercap.Get_Voltage(); // 超电压
+        JudgeReceiveData.Supercap_Voltage = chariot.Chassis.Supercap.Get_Supercap_Proportion(); // 超电电压百分比
         JudgeReceiveData.Chassis_Gimbal_Diff = chariot.Motor_Yaw.Get_Now_Angle(); // 底盘角度    
 
         if (chariot.Referee_UI_Refresh_Status == Referee_UI_Refresh_Status_ENABLE)
