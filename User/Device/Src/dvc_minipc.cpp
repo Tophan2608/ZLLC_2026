@@ -62,7 +62,7 @@ void Class_MiniPC::Data_Process()
   
   // Self_aim(target_x, target_y, target_z + camera_distance, &tmp_yaw, &tmp_pitch, &Distance);
   // Self_aim(target_x, target_y, target_z, &tmp_yaw, &tmp_pitch, &Distance);
-  Rx_Angle_Pitch = - tmp_pitch * 180 / PI;
+  Rx_Angle_Pitch = tmp_pitch * 180 / PI;
   Rx_Angle_Yaw = tmp_yaw * 180 / PI;
   Math_Constrain(&Rx_Angle_Pitch, -20.0f, 25.0f);
 }
@@ -71,6 +71,8 @@ void Class_MiniPC::Data_Process()
  * @brief 迷你主机发送数据输出
  *
  */
+float Dttttt;
+uint32_t last_cnttt = 0;
 void Class_MiniPC::Output()
 {
   // 设置发送数据
@@ -89,6 +91,7 @@ void Class_MiniPC::Output()
   Pack_Tx_CAN.q[1] = (int16_t)((arm_cos_f32(Roll_rad / 2.0f) * arm_sin_f32(Pitch_rad / 2.0f) * arm_cos_f32(Yaw_rad / 2.0f) + arm_sin_f32(Roll_rad / 2.0f) * arm_cos_f32(Pitch_rad / 2.0f) * arm_sin_f32(Yaw_rad / 2.0f)) * 10000.f);
   Pack_Tx_CAN.q[2] = (int16_t)((arm_cos_f32(Roll_rad / 2.0f) * arm_cos_f32(Pitch_rad / 2.0f) * arm_sin_f32(Yaw_rad / 2.0f) - arm_sin_f32(Roll_rad / 2.0f) * arm_sin_f32(Pitch_rad / 2.0f) * arm_cos_f32(Yaw_rad / 2.0f)) * 10000.f);
     memcpy(CAN_Tx_Data, &Pack_Tx_CAN, sizeof(Pack_tx_t));
+    Dttttt = DWT_GetDeltaT(&last_cnttt);
 
 }
 

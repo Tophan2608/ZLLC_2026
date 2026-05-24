@@ -346,8 +346,6 @@ targets:
         - ../DSP/Include
       libList: []
     excludeList: []
-    settings:
-      debugger: cortex-debug
     toolchain: AC6
     toolchainConfigMap:
       AC6:

@@ -40,13 +40,11 @@
 #include "kalman_filter.h"
 
 /* Exported macros -----------------------------------------------------------*/
-#define wheel_diameter 0.10f   // 驱动轮直径，m
-#define half_width 0.197f            // 车宽的一半，x方向为宽，m
-#define half_length 0.225f           // 车长的一半，y方向为长，m
+#define wheel_diameter 0.12f   // 驱动轮直径，m
+#define half_length 0.178f           // 轮距的一半，m
 
-#define WHEEL_RADIUS (wheel_diameter / 2)
-#define THETA atan2f(half_length, half_width) // 转向轮在坐标系下与y轴的夹角（锐角）
-#define R_DIST (half_width / cosf(THETA)) // 旋转中心与四个舵轮的距离(单位有点问题！)
+#define WHEEL_RADIUS (wheel_diameter / 2)   // 驱动轮半径，m
+#define R_DIST (half_length * 1.414f) // 旋转中心与四个舵轮的距离
 
 
 #define PI 3.141593f
@@ -85,7 +83,7 @@ enum Enum_Chassis_Control_Type :uint8_t
     Chassis_Control_Type_FLLOW,
     Chassis_Control_Type_SPIN_Positive,
     Chassis_Control_Type_Drive,  //底盘直驱
-    Chassis_Control_Type_SPIN_NePositive  // 反小陀螺
+    //Chassis_Control_Type_SPIN_NePositive  // 反小陀螺
 };
 
 /**
@@ -144,6 +142,7 @@ public:
     inline void Set_Target_Velocity_X(float __Target_Velocity_X);
     inline void Set_Target_Velocity_Y(float __Target_Velocity_Y);
     inline void Set_Target_Omega(float __Target_Omega);
+    inline void Set_Target_Drive_Omega(float __Target_Drive_Omega);
     inline void Set_Now_Velocity_X(float __Now_Velocity_X);
     inline void Set_Now_Velocity_Y(float __Now_Velocity_Y);
     inline void Set_Now_Omega(float __Now_Omega);
@@ -166,7 +165,7 @@ protected:
     //舵向电机功率上限比率
     float Steer_Power_Ratio = 0.5f;
     //底盘小陀螺模式角速度
-    float Spin_Omega = 5.0f;
+    float Spin_Omega = 8.0f;
     //常量
 
 
@@ -215,6 +214,8 @@ protected:
     float Now_Velocity_Y = 0.0f;
     //当前角速度
     float Now_Omega = 0.0f;
+    //直驱下的目标角速度
+    float Target_Drive_Omega = 0.0f;
 
     //内部函数
     void Speed_Resolution();
@@ -238,10 +239,10 @@ protected:
     // 防单轮超速系数
     float Wheel_Speed_Limit_Factor = 0.0f;
 
-    const float Wheel_Azimuth[4] = {PI / 2.0f + THETA,
-                                    3.0f * PI / 2.0f - THETA,
-                                    3.0f * PI / 2.0f + THETA,
-                                    PI / 2.0f - THETA};
+    const float Wheel_Azimuth[4] = {3.0f * PI / 4.0f,
+                                    - 3.0f * PI / 4.0f,
+                                    - PI / 4.0f,
+                                    PI / 4.0f};
 
     KalmanFilter_t Chassis_Speed_Kalman;
 };
@@ -419,6 +420,16 @@ void Class_Steering_Wheel_Chassis::Set_Target_Velocity_Y(float __Target_Velocity
 void Class_Steering_Wheel_Chassis::Set_Target_Omega(float __Target_Omega)
 {
     Target_Omega = __Target_Omega;
+}
+
+/**
+ * @brief 设定目标直驱角速度
+ *
+ * @param __Target_Drive_Omega 目标直驱角速度
+ */
+void Class_Steering_Wheel_Chassis::Set_Target_Drive_Omega(float __Target_Drive_Omega)
+{
+    Target_Drive_Omega = __Target_Drive_Omega;
 }
 
 /**
